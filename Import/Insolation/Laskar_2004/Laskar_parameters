@@ -1,0 +1,13 @@
+Extraction des parameters de Laskar et al., 2004
+	- site: https://vo.imcce.fr/insola/earth/online/earth/online/index.php
+	- sarting time: -0.02 (LGM)
+	- endind time: 0.001 (Aujourd'hui)
+	- sampling step: 100
+	- Solar constant: 1368 W/m^2
+	- on coche toutes les variables
+	
+Sites:
+- Latitude: 40° pour Fazilman
+- Iran : 30°N
+- Mongolia (Talbo lake) 50°N
+- India equateur (0°N)
