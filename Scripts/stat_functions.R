@@ -72,8 +72,6 @@ Stacking.quantif <- function(Imput.list, Keep.clim = NULL, Scaling = F, Plot.x =
     
     if(Add.bin.count == T & Keep.empty.bin == F){counts <- counts[which(counts$Group.1 %in% unique(as.character(x$Group.1))),]}
     
-    # x$Age <- (as.numeric(gsub(",.*", "", gsub("\\]", "", gsub("\\(", "", x$Group.1))))+as.numeric(gsub(".*,", "", gsub("\\]", "", gsub("\\(", "", x$Group.1)))))/2
-    # x <- x[order(x$Age),]
     x[[Plot.x]] <- (as.numeric(gsub(",.*", "", gsub("\\]", "", gsub("\\(", "", x$Group.1))))+as.numeric(gsub(".*,", "", gsub("\\]", "", gsub("\\(", "", x$Group.1)))))/2
     x <- x[order(x[[Plot.x]]),]
     
@@ -85,16 +83,14 @@ Stacking.quantif <- function(Imput.list, Keep.clim = NULL, Scaling = F, Plot.x =
     x <- x[!names(x) %in% c("TimeWind", "Group.1")]
     
     if(Anomaly == T){
-      # if(Bin.sd == F){x <- cbind(Age = x$Age, data.frame(apply(x[2:Nb.param], 2, function(x) x <- x - x[1])))}
       if(Bin.sd == F){x <- cbind(Age = x[[Plot.x]], data.frame(apply(x[2:Nb.param], 2, function(x) x <- x - x[1])))}
       else{
         Off.set <- as.vector(unlist(x[1,2:Nb.param]))
-        # x <- cbind(Age = x$Age,
         x <- cbind(Age = x[[Plot.x]],
                    data.frame(apply(x[which(names(x) != "Age" & ! grepl("^SD_", names(x)))], 2, function(x) x <- x - x[1])),
                    x[grepl("^SD_", names(x))])
       }}
-    # if(Anomaly == F){x <- cbind(Age = x$Age, x[-c(1)])}
+    
     if(Anomaly == F){x <- cbind(Age = x[[Plot.x]], x[-c(1)])}
     
     if(Add.bin.count == T){x <- cbind(x, N = counts$N)}
@@ -112,8 +108,6 @@ Stacking.quantif <- function(Imput.list, Keep.clim = NULL, Scaling = F, Plot.x =
   Corit.simple <- function (timser, detr = Detrending, method = c("InterpolationMethod", "DirectFiltering", "IntegrandInterpolationMethod", "NoFilter"), 
                             appliedFilter = c("gauss", "runmean", "lowpass"), fc, tn = seq(from = min(index(timser)), to = max(index(timser)), by = 10), dt,
                             int.method = c("linear", "nearest"), k = 5){
-    library(corit)
-    library(zoo)
     n <- max(index(timser))
     if(method == "InterpolationMethod"){res <- InterpolationMethod(detrTimser(timser, detr), fc, dt, n, int.method, appliedFilter, k)}
     if(method == "DirectFiltering"){res <- DirectFiltering(detrTimser(timser, detr), fc, tn, appliedFilter, k)}
@@ -145,7 +139,6 @@ Stacking.quantif <- function(Imput.list, Keep.clim = NULL, Scaling = F, Plot.x =
     Imput.list <- Filter(Negate(is.null), Imput.list)
   }
   
-  # if(Scaling == T){Imput.list <- lapply(Imput.list, function(x) cbind(Age = x[Plot.x], data.frame(apply(x[-c(1)], 2, Scaling.fun, a = Scale.min, b = Scale.max))))} # Old scaling (pour chaque columns indé.)
   if(Scaling == T){Imput.list <- lapply(Imput.list, scale_ensemble_df, a = Scale.min, b = Scale.max)} # New scaling (Par triplet de mean, max, min)
   
   if(Anomaly == T & Binning == F){Imput.list <- lapply(Imput.list, function(y){cbind(y[1], apply(y[2:ncol(y)], 2, function(x) x <- x - x[1]))})}
@@ -343,20 +336,9 @@ Aggregate.metadata <- function(df, group_col, site_col, spatial_cols = NULL, mea
       dplyr::across(all_of(first_cols), dplyr::first, .names = "{.col}"),
       
       #### Range aggregation (min/max) ####
-      # !!!lapply(names(range_cols), function(col) {
-      #   rlang::set_names(list(rlang::expr(
-      #     do.call(range_cols[[col]],
-      #             list(.data[[col]], na.rm = TRUE)))), col)}),
-      
       dplyr::across(all_of(names(range_cols)), ~ do.call(range_cols[[cur_column()]], list(.x, na.rm = TRUE)),.names = "{.col}"),
-      
-      ## ---- Concatenated columns ----
-      # dplyr::across(all_of(concat_cols), ~ paste(unique(.x), collapse = collapse_sep), .names = "{.col}"),
       dplyr::across(all_of(concat_cols), ~ paste(unique(na.omit(.x)), collapse = collapse_sep), .names = "{.col}"),
       
-      
-      ## ---- Site name reconstruction ----
-      # Site = paste0(dplyr::first(.data[[group_col]]), " (", paste(unique(.data[[site_col]]), collapse = ", "), ")"), .groups = "drop")
       Site_full = paste0(dplyr::first(.data[[group_col]]), " (", paste(unique(.data[[site_col]]), collapse = ", "), ")"),
       Site = first(.data[[site_col]]), .groups = "drop")
   
@@ -628,7 +610,6 @@ Pollen.Ensemble.RMSE <- function(MPal, Plot.x, Keep.clim, Msurf, Mpal.raw = NULL
     Title.age = NULL
     Axis.x <- element_blank(); Ticks.x <- element_blank(); Axis.lab.x <- element_blank()
     if(Add.lim.space == T){
-      # FT <- lapply(FT, function(x) x[which(x$Age <= Limites[2]),])
       Limites[2] <- (Limites[2] + Limites[2]*0.23)}
     Legende.Core.name.chart <- c(17, rep(0, (length(Keep.clim)-1)))
   }
@@ -637,15 +618,8 @@ Pollen.Ensemble.RMSE <- function(MPal, Plot.x, Keep.clim, Msurf, Mpal.raw = NULL
     Ticks.x <- element_line(); Axis.lab.x <- element_text(angle = 45, hjust = 1, size = Lab.age.size, colour = "grey55")
     Legende.Core.name.chart <- c(16, rep(0, (length(Keep.clim)-1)))
   }
-  # Legende.position.chart <- c("top", rep("none", (length(Cores)-1)))
-  # if(is.null(Legend.pos) == F){Legende.position.chart <- Legend.pos}
-  # Legende.title.chart <- c(16, rep(0.5, (length(Cores)-1)))
-  # Legende.title.col.chart <- c("black", rep("white", (length(Cores)-1)))
-  # Legende.axis.chart <- c(rep("white", (length(Cores)-1)), "grey")
-  # if(length(Smooth.param) != length(Cores)){Smooth.param <- rep(Smooth.param, length(Cores)/length(Smooth.param))}
   
   if(Title.display == F){My_title <- element_blank()}
-  # else{My_title <- element_text(size = Legende.title.chart[i], hjust = 0.5, color = Legende.title.col.chart[i])}
   else{My_title <- element_text(size = 17, hjust = 0.5)}
   
   Plot.list.col <- list()
@@ -751,8 +725,8 @@ Pollen.Ensemble.RMSE <- function(MPal, Plot.x, Keep.clim, Msurf, Mpal.raw = NULL
       
       Method.i <- names(Msurf)[i]
       if(is.null(Remove.calib) == F){
+        print("**** These calibration datasets were removed. ****")
         print(any(Remove.calib %in% Name.model.full))
-        # if(Remove.calib == Name.model.full){next}
         if(any(Remove.calib %in% Name.model.full)){next}
       }
       
@@ -797,7 +771,6 @@ Pollen.Ensemble.RMSE <- function(MPal, Plot.x, Keep.clim, Msurf, Mpal.raw = NULL
         weighted_variance <-row_weighted_variance(prediction_matrix, wg, method = Variance.method)
         Res[[paste(j, "FT_Ensemble_MaxI", sep = "_")]] <- Res[[paste(j, "FT_Ensemble", sep = "_")]] + 1.96*sqrt(weighted_variance)
         Res[[paste(j, "FT_Ensemble_MinI", sep = "_")]] <- Res[[paste(j, "FT_Ensemble", sep = "_")]] - 1.96*sqrt(weighted_variance)
-        # Res[[paste(j, "var", sep = "_")]] <- weighted_variance
       }
     }
   }
@@ -827,10 +800,6 @@ Pollen.Ensemble.RMSE <- function(MPal, Plot.x, Keep.clim, Msurf, Mpal.raw = NULL
   if(Show.DES.contrib == T & Display.sim == F){
     Res.contrib <- cbind(Keep.plot.x, do.call(cbind, Res.contrib))
     Res.contrib <- melt(Res.contrib, Plot.x)
-    
-    print(Res.contrib)
-    # A finir !
-    
   }
   
   #### Plot ####
@@ -950,16 +919,12 @@ Pollen.Ensemble.RMSE <- function(MPal, Plot.x, Keep.clim, Msurf, Mpal.raw = NULL
       #### Annotations ####
     new_scale_color()+
       scale_color_manual(values = Rect.color.scale, guide = "none", name = NULL, labels = NULL, breaks = NULL, na.translate = FALSE)+
-      # geom_text(data = yo2, inherit.aes = F,
-      # aes(x = (xmax+xmin)/2, y = Inf, #label = Title.zone.i, 
-      # color = Temp.col), size = 3.5, vjust = 1.5, fontface = "bold") +
       ggthemes::geom_rangeframe(data = My_axis_clim, inherit.aes = F, mapping = aes(x = B, y = A), colour = "grey50", sides = Axis.side, size = 0.5) +
       Surf.line + Surf.dot +
       
       #### Theme ####
     theme(plot.background = element_blank(), axis.ticks.x = Ticks.x,
           plot.title = My_title, panel.grid = element_blank(),
-          # element_text(size = 11, colour = "grey20"),
           axis.title.y = element_text(size = Legende.Core.name.chart[i], colour = "grey20"),              # taile police du titre de l'axe
           strip.text = element_blank(),
           axis.line.x = Axis.x, axis.line.y = Axis.y,
@@ -981,7 +946,6 @@ Pollen.Ensemble.RMSE <- function(MPal, Plot.x, Keep.clim, Msurf, Mpal.raw = NULL
         scale_y_continuous(name = "Weights (%)", breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(0,1), labels = c(0, 25, 50, 75, 100))+
         theme(plot.background = element_blank(),
               plot.title = element_blank(), panel.grid = element_blank(),
-              # element_text(size = 11, colour = "grey20"),
               strip.text = element_blank(),
               axis.title.x = element_blank(), strip.placement = "outside",
               axis.line.y.left = element_line(),
@@ -1017,7 +981,6 @@ Mat.corel.CWT.clim <- function(Mclim, Mtrait, I.confiance = NULL, Display.pval, 
                                Method.cor, Save.plot = NULL, W, H, Order.by.alphabet, Average){
   #### Settings ####
   Save.tab = T
-  library(corrplot)
   if(missing(return.pick)){return.pick = F}
   if(missing(Order.by.alphabet)){Order.by.alphabet = F}
   if(missing(Label)){Label = T}
@@ -1057,20 +1020,14 @@ Mat.corel.CWT.clim <- function(Mclim, Mtrait, I.confiance = NULL, Display.pval, 
   }
   
   if(Return.slope == T){
-    # Mtrait2 <- scale(Mtrait)
-    # Mclim2 <- scale(Mclim)
     Mtrait2 <- Mtrait
     Mclim2 <- Mclim
     slope_mat <- sapply(1:ncol(Mtrait2), function(j) {apply(Mclim2, 2, function(y) coef(lm(y ~ Mtrait2[, j]))[2])})
     colnames(slope_mat) <- colnames(Mcor)
-    
-    # slope_norm <- (slope_mat - mean(slope_mat)) / sd(slope_mat)
-    # slope_mat <- slope_norm / max(abs(slope_norm))
   }
   
   #### Permutations test ####
   if(Permutation.test == T){
-    library("jmuOutlier")
     print(paste("p-value calculated with permutation test made on ", Nb.permutations, " permutations.", sep = ""))
     PV.perm <- setNames(data.frame(matrix(NA, nrow = length(Mclim), length(Mtrait))), names(Mtrait))
     row.names(PV.perm) <- names(Mclim) 
@@ -1114,24 +1071,20 @@ Mat.corel.CWT.clim <- function(Mclim, Mtrait, I.confiance = NULL, Display.pval, 
   #### Highlight some tiles ####
   if(is.null(Good.tiles) == F){
     heat_data <- reshape2::melt(Mcor)
-    # print("NIKKKKKKKKKKKKKKK")
     heat_data$highlight <- apply(heat_data[, c("Var1", "Var2")], 1, function(row) {any(mapply(function(x) all(row == x), Good.tiles))})
-    # print(subset(heat_data, highlight))
     Bold.tiles <- geom_tile(data = subset(heat_data, highlight), mapping = aes(x = Var1, y = Var2), color = "green", size = 1.2, fill = NA)
   }
   else{Bold.tiles <- NULL}
   
   if(is.null(Bad.tiles) == F){
     heat_data <- melt(Mcor)
-    # print(heat_data)
     heat_data$highlight <- apply(heat_data[, c("Trait1", "Trait2")], 1, function(row) {any(mapply(function(x) all(row == x), Bad.tiles))})
-    # print(heat_data)
     Bold.tiles.2 <- geom_tile(data = subset(heat_data, highlight), color = "black", size = 1.2, fill = NA)
   }
   else{Bold.tiles.2 <- NULL}
   
   #### Plots (coorplor) ####
-  if(ggplot.version == F){print("jojo")
+  if(ggplot.version == F){
     CP <- corrplot(Mcor, type = Display, col = my_color, tl.pos = Xlab.pos,
                    tl.col="black", tl.srt = Xlab.rot, tl.cex = .7, method = Disp.R, cl.align.text = "l", cl.pos = Bar.pos, 
                    p.mat = PV, sig.level = (1-I.confiance), insig = Display.pval, pch.cex = 2)
@@ -1141,16 +1094,11 @@ Mat.corel.CWT.clim <- function(Mclim, Mtrait, I.confiance = NULL, Display.pval, 
   
   #### Plots (ggplot) ####
   if(ggplot.version == T){
-    library(ggcorrplot)
-    # print(PV)
-    print(Bar.pos)
-    
     if(Disp.R == "pie"|Disp.R == "circle"){Disp.R.gg <- "circle"}
     if(Disp.R == "number"|Disp.R == "square"){Disp.R.gg <- "square"}
     
     if(Xlab.rot == 0){Xjust <- 0.5}
     if(Xlab.rot != 0){Xjust <- 1}
-    
     
     if(typeof(Bar.pos) != "double"){
       Bar.pos.gg <- "top"

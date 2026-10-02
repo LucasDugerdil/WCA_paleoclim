@@ -1,5 +1,4 @@
 #### Meta data ####
-# =============================================================================
 # Project: Lake Fazilman Holocene climate, vegetation and human impact reconstructions
 # Script: main.R
 #
@@ -36,7 +35,6 @@
 #
 # Created: 2025-08-01
 # Last modified: 2025-12-27
-# =============================================================================
 
 #### Import data ####
 Import = T
@@ -46,6 +44,7 @@ if(Import == T){
   source("Scripts/setup_packages.R")
   source("Scripts/graphical_functions.R")
   source("Scripts/stat_functions.R")
+  if(!exists("map_empty_world")){source("Scripts/Load_maps.R")}
   
   #### WCA metadata ####
   Meta.data <- readRDS("Import/test/Site_full_list_clim_selected.Rds")
@@ -72,643 +71,935 @@ if(Import == T){
   dir.create("Results/WCA", recursive = T, showWarnings = F)
 }
 
-Param.clim = c("MAAT", "MAP")
+#### Parameters and settings ####
+Param.clim = c("MAAT", "MAP") # Climate parameters selection
+Limits = c(500, 12500)        # Time limits of the study
+Windows.length.final = 200    # Lenght of the time windows for binning
+Scaling.final = T             # Apply min-max scaling or not
+Anomaly.final = F             # Use anomaly or not
+Add.smooth.final = F          # Add a loess smooth or not
+Smooth.final = 0.4            # Loess smooth parameter            
+
+#### Select figures to plots ####
+Figures = T
+
+Tab.1 = F; Fig.3 = F; Fig.4 = F; Fig.5 = F; Fig.6 = F; Fig.7 = F; Fig.8 = F; Fig.9 = F; Fig.10 = F; Fig.11 = F; Fig.12 = F; Fig.14 = T
+# Tab.1 = T; Fig.3 = T; Fig.4 = T; Fig.5 = T; Fig.6 = T; Fig.7 = T; Fig.8 = T; Fig.9 = T; Fig.10 = T; Fig.11 = T; Fig.12 = T; Fig.14 = F
+# Tab.1 = T; Fig.3 = F; Fig.4 = F; Fig.5 = F; Fig.6 = F; Fig.7 = F; Fig.8 = F; Fig.9 = F; Fig.10 = F; Fig.11 = F; Fig.12 = F; Fig.14 = F
+
+# Fig.S9 = T
 
 #### Figures and Tables ####
-Figures = T
 if(Figures == T){
-  #### Check by region (Cauc., Iran, Caspian, E. and W. TSH) ####
-  Check.region = F
-  if(Check.region == T){
-    #### Check Caucasus (Fig. 5) ####
-    Caucasus.check = T
-    if(Caucasus.check == T){
-      #### Settings ####
-      Limits = c(0, 12000)
-      Windows.length = 500
-      Add.TraCE = T
-      Keep.area = "Caucasus"
-      Remove.sites <- c("Amtkel", "Amtkel_1", "Amtkel_3", "Sakhare", "Kumisi", "Sibista")
-      
-      #### Filter ####
-      if(is.null(Keep.area) == F){Meta.data.cauc <- Meta.data.no.filter[Meta.data.no.filter$Area %in% Keep.area,]}
-      if(is.null(Remove.sites) == F){Meta.data.cauc <- Meta.data.cauc[!Meta.data.cauc$Site %in% Remove.sites,]}
-      LEC.cauc.raw <- List.Ensemble[Meta.data.cauc$ID]
-      LEC.cauc.raw <- Filter(function(df) {any(!is.na(df[, -1, drop = F]))}, LEC.cauc.raw)
-      
-      LEC.cauc <- Stacking.quantif(Imput.list = LEC.cauc.raw, Limits = Limits, Filter.cut.off = 200, Interp.step = 100,
-                                   Return.list = T, Interpolation = F, Windows.length = Windows.length, Keep.clim = paste(Param.clim, "FT_Ensemble", sep = "_"), New.param.names = Param.clim)
-      
-      #### TraCE extraction (synthese WCA) ####
-      if(Add.TraCE == T){
-        LEC.cauc <- c(LEC.cauc, Tra.cauc)
-        Group.by <- "Recons.type"
-      }
-      else{Group.by <- NULL}
-      
-      #### Multi proxy plot ####
-      LEC.cauc <- Stacking.quantif(Imput.list = LEC.cauc.raw, Limits = Limits, Return.list = T, Windows.length = Windows.length)
-      Meta.data.cauc2 <- Meta.data.cauc[Meta.data.cauc$ID %in% names(LEC.cauc),]
-      LEC.cauc.MAAT <- Prep.2.multiproxy.plot(LEC.cauc, MD = Meta.data.cauc2, Param.clim = "MAAT", Keep.CI = T)
-      LEC.cauc.MAP <- Prep.2.multiproxy.plot(LEC.cauc, MD = Meta.data.cauc2, Param.clim = "MAP", Keep.CI = T)
-      
-      
-      p1 <- Plot.multiprox(Mlake = LEC.cauc.MAAT, Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
-                           Smooth.param = 0.4, Title = "(A) MAAT-proxies", Scale.y.free = T, Clean.labels = T, Add.parenthesis = T, Add.CI = T,
-                           Panel.space.y = -4, Event.clim = c( 4200, 8200))
-      p2 <- Plot.multiprox(Mlake = LEC.cauc.MAP, Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
-                           Smooth.param = 0.4, Title = "(A) MAP-proxies", Scale.y.free = T, Clean.labels = T, Add.parenthesis = T, Add.CI = T,
-                           Panel.space.y = -4, Event.clim = c( 4200, 8200))
-      p3 <- p1 + p2
-      W = 900; H = 1000; Save.plot = "Figures/SI/Figure_S4.pdf"
-      ggsave(filename = Save.plot, p3, width = W*0.026458333, height = H*0.026458333, units = "cm")
-      
-      #### Multi proxy plot (selected) ####
-      Selection.MAAT <- c(4,3,7,8,9,11)
-      Selection.MAP <- c(3,7,13,9,12,8)
-      Clim.surf.cauc <- Meta.data.cauc2[!duplicated(Meta.data.cauc2$Site_full),]
-      Clim.surf.cauc$Lake <- Clim.surf.cauc$Site_full
-      
-      pMAAT <- Plot.multiprox(Mlake = LEC.cauc.MAAT[Selection.MAAT], Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
-                              Smooth.param = 0.4, Title = "(A) Caucasus - temperature", 
-                              Scale.y.free = T, Add.CI = T, Facet.tit.color = T,
-                              Panel.space.y = -10, Size.panel.tit = 11, Leg.pos = "none", Show.line = F,
-                              Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("W", "C", "W"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
-                              Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
-      
-      pMAP <- Plot.multiprox(Mlake = LEC.cauc.MAP[Selection.MAP], Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
-                             Smooth.param = 0.4, Title = "(B) Caucasus - moisture", Scale.y.free = T, Add.CI = T, Panel.space.y = -5,
-                             Size.panel.tit = 11, Leg.pos = "none", Show.line = F, Facet.tit.color = T,
-                             Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("D", "Wt", "D"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
-                             Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
-      
-      W = 900; H = 800; Save.plot = "Figures/Main_Figures/Figure_5.pdf"
-      p.Select <- pMAAT | pMAP
-      ggsave(filename = Save.plot, p.Select, width = W*0.026458333, height = H*0.026458333, units = "cm")
-      
-      #### Export results ####
-      dir.create("Results/Caucasus/Site/", recursive = T)
-      saveRDS(Meta.data.cauc, "Results/Caucasus/Site/Cores_Caucasus_synthese_WCA.Rds")
-    }
+  #### Fig. 5 + S4 (Caucasus) ####
+  if(Fig.5 == T){
+    #### Settings ####
+    Limits = c(0, 12000)
+    Windows.length = 500
+    Add.TraCE = T
+    Keep.area = "Caucasus"
+    Remove.sites <- c("Amtkel", "Amtkel_1", "Amtkel_3", "Sakhare", "Kumisi", "Sibista")
     
-    #### Check Iran (Fig. 6) ####
-    Iran.check = T
-    if(Iran.check == T){
-      #### Settings ####
-      Limits = c(0, 12000)
-      Windows.length = 500
-      Remove.sites <- c("Gol_E_Zard", "Sibaki", "Kandahar", "Maharlou", "Parishan", "Seistan", "Pir_Ghar")
-      Keep.area <- c("Iran")
-      Add.TraCE = T
-      
-      #### Filter ####
-      if(is.null(Keep.area) == F){Meta.data.Ir <- Meta.data.no.filter[Meta.data.no.filter$Area %in% Keep.area,]}
-      if(is.null(Remove.sites) == F){Meta.data.Ir <- Meta.data.Ir[!Meta.data.Ir$Site %in% Remove.sites,]}
-      LEC.Ir.raw <- List.Ensemble[Meta.data.Ir$ID]
-      LEC.Ir.raw <- Filter(function(df) {any(!is.na(df[, -1, drop = F]))}, LEC.Ir.raw)
-      
-      LEC.Ir <- Stacking.quantif(Imput.list = LEC.Ir.raw, Limits = Limits, Filter.cut.off = 200, Interp.step = 100, Scaling = F,
+    #### Filter ####
+    if(is.null(Keep.area) == F){Meta.data.cauc <- Meta.data.no.filter[Meta.data.no.filter$Area %in% Keep.area,]}
+    if(is.null(Remove.sites) == F){Meta.data.cauc <- Meta.data.cauc[!Meta.data.cauc$Site %in% Remove.sites,]}
+    LEC.cauc.raw <- List.Ensemble[Meta.data.cauc$ID]
+    LEC.cauc.raw <- Filter(function(df) {any(!is.na(df[, -1, drop = F]))}, LEC.cauc.raw)
+    
+    LEC.cauc <- Stacking.quantif(Imput.list = LEC.cauc.raw, Limits = Limits, Filter.cut.off = 200, Interp.step = 100,
                                  Return.list = T, Interpolation = F, Windows.length = Windows.length, Keep.clim = paste(Param.clim, "FT_Ensemble", sep = "_"), New.param.names = Param.clim)
-      
-      #### TraCE extraction (synthese WCA) ####
-      if(Add.TraCE == T){
-        LEC.Ir <- c(LEC.Ir, Tra.Ir)
-        Group.by <- "Recons.type"
-      }
-      else{Group.by <- NULL}
-      
-      #### Multi proxy plot ####
-      LEC.Ir <- Stacking.quantif(Imput.list = LEC.Ir.raw, Limits = Limits, Return.list = T, Windows.length = Windows.length)
-      Meta.data.Ir2 <- Meta.data.Ir[Meta.data.Ir$ID %in% names(LEC.Ir),]
-      LEC.Ir.MAAT <- Prep.2.multiproxy.plot(LEC.Ir, MD = Meta.data.Ir2, Param.clim = "MAAT", Keep.CI = T)
-      LEC.Ir.MAP <- Prep.2.multiproxy.plot(LEC.Ir, MD = Meta.data.Ir2, Param.clim = "MAP", Keep.CI = T)
-      
-      p1 <- Plot.multiprox(Mlake = LEC.Ir.MAAT, Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
-                           Smooth.param = 0.4, Title = "(A) MAAT-proxies", Scale.y.free = T, Clean.labels = T, Add.parenthesis = T, Add.CI = T,
-                           Panel.space.y = 10, Event.clim = c( 4200, 8200))
-      p2 <- Plot.multiprox(Mlake = LEC.Ir.MAP, Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
-                           Smooth.param = 0.4, Title = "(A) MAP-proxies", Scale.y.free = T, Clean.labels = T, Add.parenthesis = T, Add.CI = T,
-                           Panel.space.y = -1, Event.clim = c( 4200, 8200))
-      p3 <- p1 + p2
-      W = 900; H = 850; Save.plot = "Figures/SI/Figure_S5.pdf"
-      ggsave(filename = Save.plot, p3, width = W*0.026458333, height = H*0.026458333, units = "cm")
-      
-      #### Multi proxy plot (selected) ####
-      Selection.MAAT <- c(3,1,4,2,5)
-      Selection.MAP <- c(3,7,10,1,6,9,12,11)
-      
-      Clim.surf.Ir <- Meta.data.Ir2[!duplicated(Meta.data.Ir2$Site_full),]
-      Clim.surf.Ir$Lake <- Clim.surf.Ir$Site_full
-      
-      pMAAT <- Plot.multiprox(Mlake = LEC.Ir.MAAT[Selection.MAAT], Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
-                              Smooth.param = 0.4, Title = "(A) Iran - temperature", 
-                              Scale.y.free = T, Add.CI = T, 
-                              Panel.space.y = 0, Size.panel.tit = 9, Leg.pos = "none", Show.line = F, Facet.tit.color = T,
-                              Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("W", "C", "W"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
-                              Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
-      
-      pMAP <- Plot.multiprox(Mlake = LEC.Ir.MAP[Selection.MAP], Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
-                             Smooth.param = 0.4, Title = "(B) Iran - moisture", Scale.y.free = T, Add.CI = T, 
-                             # Surf.val = Clim.surf.Ir,
-                             Panel.space.y = -10,
-                             Size.panel.tit = 9, Leg.pos = "none", Show.line = F, Facet.tit.color = T,
-                             Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("D", "Wt", "D"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
-                             Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
-      
-      p.Select <- pMAAT | pMAP
-      W = 900; H = 850; Save.plot = "Figures/Main_Figures/Figure_6.pdf"
-      ggsave(filename = Save.plot, p.Select, width = W*0.026458333, height = H*0.026458333, units = "cm")
-      
-      #### Export results ####
-      dir.create("Results/Iran/Site/", recursive = T)
-      saveRDS(Meta.data.Ir, "Results/Iran/Site/Cores_Iran_synthese_WCA.Rds")
-    }
     
-    #### Check Caspienne-Aral (Fig. 7) ####
-    Caspian.check = T
-    if(Caspian.check == T){
-      #### Settings ####
-      Limits = c(0, 12000)
-      Windows.length = 500
-      Add.TraCE = T
-      Re.extract.TraCE = T
-      Keep.area = c("Caspian", "Touran")
-      Remove.sites <- c("Amirkola", "Anzali", "Astaneh", "Langarud", "Klaus", "Aral_07")
-      
-      #### Filter ####
-      if(is.null(Keep.area) == F){Meta.data.Cas <- Meta.data.no.filter[Meta.data.no.filter$Area %in% Keep.area,]}
-      if(is.null(Remove.sites) == F){Meta.data.Cas <- Meta.data.Cas[!Meta.data.Cas$Site %in% Remove.sites,]}
-      LEC.Cas.raw <- List.Ensemble[Meta.data.Cas$ID]
-      LEC.Cas.raw <- Filter(function(df) {any(!is.na(df[, -1, drop = F]))}, LEC.Cas.raw)
-      
-      LEC.Cas <- Stacking.quantif(Imput.list = LEC.Cas.raw, Limits = Limits, Filter.cut.off = 200, Interp.step = 100,
-                                  Return.list = T, Interpolation = F, Windows.length = Windows.length, Keep.clim = paste(Param.clim, "FT_Ensemble", sep = "_"), New.param.names = Param.clim)
-      
-      Meta.data.Cas$Site_full[Meta.data.Cas$Site_full == "GS18"] <- "Caspian (middle)"
-      Meta.data.Cas$Site_full[Meta.data.Cas$Site_full == "South Caspian (CP14, GS_05)"] <- "Caspian (south)"
-      Meta.data.Cas$Site_full[Meta.data.Cas$Site_full == "Golestan (Gomishan, Shahkileh)"] <- "Golestan lagoon"
-      
-      #### TraCE extraction (synthese WCA) ####
-      if(Add.TraCE == T){
-        LEC.Cas <- c(LEC.Cas, Tra.Cas)
-        Group.by <- "Recons.type"
-      }
-      else{Group.by <- NULL}
-      
-      #### Multi proxy plot ####
-      LEC.Cas <- Stacking.quantif(Imput.list = LEC.Cas.raw, Limits = Limits, Return.list = T, Windows.length = Windows.length)
-      Meta.data.Cas2 <- Meta.data.Cas[Meta.data.Cas$ID %in% names(LEC.Cas),]
-      LEC.Cas.MAAT <- Prep.2.multiproxy.plot(LEC.Cas, MD = Meta.data.Cas2, Param.clim = "MAAT", Keep.CI = T)
-      LEC.Cas.MAP <- Prep.2.multiproxy.plot(LEC.Cas, MD = Meta.data.Cas2, Param.clim = "MAP", Keep.CI = T)
-      
-      p1 <- Plot.multiprox(Mlake = LEC.Cas.MAAT, Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
-                           Smooth.param = 0.4, Title = "(A) MAAT-proxies", Add.CI = T,
-                           Panel.space.y = 5, Event.clim = c( 4200, 8200))
-      p2 <- Plot.multiprox(Mlake = LEC.Cas.MAP, Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
-                           Smooth.param = 0.4, Title = "(A) MAP-proxies", Bar.size = 1, Add.CI = T,
-                           Panel.space.y = -4, Event.clim = c( 4200, 8200))
-      
-      W = 900; H = 1000; Save.plot = "Figures/SI/Figure_S6.pdf"
-      p3 <- p1 + p2
-      ggsave(filename = Save.plot, p3, width = W*0.026458333, height = H*0.026458333, units = "cm")
-      
-      #### Multi proxy plot (selected) ####
-      Selection.MAAT <- c(1,3,2,4,5)
-      Selection.MAP <- c(9,8,5,6,4,11)
-      # Selection.MAP <- c(9,8,7,5,6,4)
-      Clim.surf.Cas <- Meta.data.Cas2[!duplicated(Meta.data.Cas2$Site_full),]
-      Clim.surf.Cas$Lake <- Clim.surf.Cas$Site_full
-      
-      pMAAT <- Plot.multiprox(Mlake = LEC.Cas.MAAT[Selection.MAAT], Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
-                              Smooth.param = 0.4, Title = "(A) Caspian/Aral - temperature", 
-                              Scale.y.free = T, Add.CI = T, Facet.tit.color = T,
-                              Panel.space.y = -5, Size.panel.tit = 10, Leg.pos = "none", Show.line = F,
-                              Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("W", "C", "W"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
-                              Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
-      
-      pMAP <- Plot.multiprox(Mlake = LEC.Cas.MAP[Selection.MAP], Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
-                             Smooth.param = 0.4, Title = "(B) Caspian/Aral - moisture", 
-                             Scale.y.free = T, Facet.tit.color = T, Add.CI = T, Panel.space.y = -5, Size.panel.tit = 10, Leg.pos = "none", Show.line = F,
-                             Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("D", "Wt", "D"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
-                             Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
-      
-      W = 900; H = 800; Save.plot = "Figures/Main_Figures/Figure_7.pdf"
-      p.Select <- pMAAT | pMAP
-      ggsave(filename = Save.plot, p.Select, width = W*0.026458333, height = H*0.026458333, units = "cm")
-      
-      #### Export results ####
-      dir.create("Results/Caspian/Site/", recursive = T)
-      saveRDS(Meta.data.Cas, "Results/Caspian/Site/Cores_Caspian_synthese_WCA.Rds")
+    #### TraCE extraction (synthese WCA) ####
+    if(Add.TraCE == T){
+      LEC.cauc <- c(LEC.cauc, Tra.cauc)
+      Group.by <- "Recons.type"
     }
+    else{Group.by <- NULL}
     
-    #### Check West. TSH (Fig. 8) ####
-    West.TSH.check = T
-    if(West.TSH.check == T){
-      #### Settings ####
-      Limits = c(0, 12000)
-      Windows.length = 500
-      Add.TraCE = T
-      Re.extract.TraCE = F
-      Keep.area = c("West. TSH")
-      Remove.sites <- c("Bir_Uja", "Ak_Terek", "Nizhnee", "Ortok", "Ashubulak", "Verkhnee", "Issyk_Kul")
-      
-      #### Filter ####
-      if(is.null(Keep.area) == F){Meta.data.WTSH <- Meta.data.no.filter[Meta.data.no.filter$Area %in% Keep.area,]}
-      if(is.null(Remove.sites) == F){Meta.data.WTSH <- Meta.data.WTSH[!Meta.data.WTSH$Site %in% Remove.sites,]}
-      LEC.WTSH.raw <- List.Ensemble[Meta.data.WTSH$ID]
-      LEC.WTSH.raw <- Filter(function(df) {any(!is.na(df[, -1, drop = F]))}, LEC.WTSH.raw)
-      
-      LEC.WTSH <- Stacking.quantif(Imput.list = LEC.WTSH.raw, Limits = Limits, Return.list = T, Windows.length = Windows.length, Keep.clim = paste(Param.clim, "FT_Ensemble", sep = "_"), New.param.names = Param.clim)
-      
-      Meta.data.WTSH$Site_full[Meta.data.WTSH$Site_full == "Issyk-Kul (Issyk_Kul_IK0011, Issyk_Kul_ISKUC087)"] <- "Issyk-Kul"
-      Meta.data.WTSH$Site_full[Meta.data.WTSH$Site_full == "Son-Kul (Son_Kul, SONK_11_D)"] <- "Son-Kul"
-      Meta.data.WTSH$Site_full[Meta.data.WTSH$Site_full == "Tonnel’naya cave"] <- "Tonnelnaya cave"
-      
-      #### TraCE extraction (synthese WCA) ####
-      if(Add.TraCE == T){
-        LEC.WTSH <- c(LEC.WTSH, Tra.WTSH)
-        Group.by <- "Recons.type"
-      }
-      else{Group.by <- NULL}
-      
-      #### Multi proxy plot (all) ####
-      LEC.WTSH <- Stacking.quantif(Imput.list = LEC.WTSH.raw, Limits = Limits, Return.list = T, Windows.length = Windows.length)
-      Meta.data.WTSH2 <- Meta.data.WTSH[Meta.data.WTSH$ID %in% names(LEC.WTSH),]
-      LEC.WTSH.MAAT <- Prep.2.multiproxy.plot(LEC.WTSH, MD = Meta.data.WTSH2, Param.clim = "MAAT", Keep.CI = T)
-      LEC.WTSH.MAP <- Prep.2.multiproxy.plot(LEC.WTSH, MD = Meta.data.WTSH2, Param.clim = "MAP", Keep.CI = T)
-      
-      p1 <- Plot.multiprox(Mlake = LEC.WTSH.MAAT, Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
-                           Smooth.param = 0.4, Title = "(A) MAAT-proxies", Scale.y.free = T, Add.CI = T, Facet.tit.color = T, Rotate.panel.tit = T, Add.parenthesis = T, Clean.labels = T,
-                           Panel.space.y = -4, Event.clim = c( 4200, 8200))
-      p2 <- Plot.multiprox(Mlake = LEC.WTSH.MAP, Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), Size.panel.tit = 6, 
-                           Smooth.param = 0.4, Title = "(A) MAP-proxies", Bar.size = 1, Scale.y.free = T, Add.CI = T, Facet.tit.color = T, Rotate.panel.tit = T, Add.parenthesis = T, Clean.labels = T,
-                           Panel.space.y = -4, Event.clim = c( 4200, 8200))
-      p3 <- p1 + p2
-      W = 1000; H = 1600; Save.plot = "Figures/SI/Figure_S7.pdf"
-      ggsave(filename = Save.plot, p3, width = W*0.026458333, height = H*0.026458333, units = "cm")
-      
-      #### Multi proxy plot (selected) ####
-      Selection.MAAT <- c(2,7,6,1,3,4,5)
-      Selection.MAP <- c(16,4,7,2,6,5,19,8,10,15)
-      Clim.surf.WTSH <- Meta.data.WTSH2[!duplicated(Meta.data.WTSH2$Site_full),]
-      Clim.surf.WTSH$Lake <- Clim.surf.WTSH$Site_full
-      
-      pMAAT <- Plot.multiprox(Mlake = LEC.WTSH.MAAT[Selection.MAAT], Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
-                              Smooth.param = 0.4, Title = "(A) Western Tian Shan - temperature", 
-                              Scale.y.free = T, Facet.tit.color = T, Add.CI = T, 
-                              Panel.space.y = -10, Size.panel.tit = 12, Leg.pos = "none", Show.line = F,
-                              Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("W", "C", "W"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
-                              Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
-      
-      pMAP <- Plot.multiprox(Mlake = LEC.WTSH.MAP[Selection.MAP], Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
-                             Smooth.param = 0.4, Title = "(B) Western Tian Shan - moisture", 
-                             Scale.y.free = T, Add.CI = T, Panel.space.y = -5, Facet.tit.color = T,
-                             Size.panel.tit = 10, Leg.pos = "none", Show.line = F,
-                             Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("D", "Wt", "D"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
-                             Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
-      
-      H = 1100; W = 1000; Save.plot = "Figures/Main_Figures/Figure_8.pdf"
-      
-      p.Select <- pMAAT | pMAP
-      ggsave(filename = Save.plot, p.Select, width = W*0.026458333, height = H*0.026458333, units = "cm")
-      
-      #### Export results ####
-      dir.create("Results/West_TSH/Site/", recursive = T)
-      saveRDS(Meta.data.WTSH, "Results/West_TSH/Site/Cores_WTSH_synthese_WCA.Rds")
-    }
+    #### Multi proxy plot ####
+    LEC.cauc <- Stacking.quantif(Imput.list = LEC.cauc.raw, Limits = Limits, Return.list = T, Windows.length = Windows.length)
+    Meta.data.cauc2 <- Meta.data.cauc[Meta.data.cauc$ID %in% names(LEC.cauc),]
+    LEC.cauc.MAAT <- Prep.2.multiproxy.plot(LEC.cauc, MD = Meta.data.cauc2, Param.clim = "MAAT", Keep.CI = T)
+    LEC.cauc.MAP <- Prep.2.multiproxy.plot(LEC.cauc, MD = Meta.data.cauc2, Param.clim = "MAP", Keep.CI = T)
     
-    #### Check East. TSH (Fig. 9) ####
-    East.TSH.check = T
-    if(East.TSH.check == T){
-      #### Settings ####
-      Limits = c(0, 12000)
-      Windows.length = 500
-      Add.TraCE = T
-      Re.extract.TraCE = F
-      Keep.area = c("East. TSH")
-      Remove.sites <- c("Xiao_Yourdusi", "Xiaoxigou", "Chaiwopu_CKF", "KS15", "XEBLK", "XY17", "Huashuwozi", "Daxigou")
-      
-      #### Filter ####
-      if(is.null(Keep.area) == F){Meta.data.ETSH <- Meta.data.no.filter[Meta.data.no.filter$Area %in% Keep.area,]}
-      if(is.null(Remove.sites) == F){Meta.data.ETSH <- Meta.data.ETSH[!Meta.data.ETSH$Site %in% Remove.sites,]}
-      LEC.ETSH.raw <- List.Ensemble[Meta.data.ETSH$ID]
-      LEC.ETSH.raw <- Filter(function(df) {any(!is.na(df[, -1, drop = F]))}, LEC.ETSH.raw)
-      
-      LEC.ETSH <- Stacking.quantif(Imput.list = LEC.ETSH.raw, Limits = Limits, Return.list = T, Windows.length = Windows.length, Keep.clim = paste(Param.clim, "FT_Ensemble", sep = "_"), New.param.names = Param.clim)
-      
-      Meta.data.ETSH$Site_full[Meta.data.ETSH$Site_full == "Yili River (Yili, Yili_TKP)"] <- "Yili River"
-      
-      #### TraCE extraction (synthese WCA) ####
-      if(Add.TraCE == T){
-        LEC.ETSH <- c(LEC.ETSH, Tra.ETSH)
-        Group.by <- "Recons.type"
-      }
-      else{Group.by <- NULL}
-      
-      #### Multi proxy plot (all) ####
-      LEC.ETSH <- Stacking.quantif(Imput.list = LEC.ETSH.raw, Limits = Limits, Return.list = T, Windows.length = Windows.length)
-      Meta.data.ETSH2 <- Meta.data.ETSH[Meta.data.ETSH$ID %in% names(LEC.ETSH),]
-      LEC.ETSH.MAAT <- Prep.2.multiproxy.plot(LEC.ETSH, MD = Meta.data.ETSH2, Param.clim = "MAAT", Keep.CI = T)
-      LEC.ETSH.MAP <- Prep.2.multiproxy.plot(LEC.ETSH, MD = Meta.data.ETSH2, Param.clim = "MAP", Keep.CI = T)
-      
-      p1 <- Plot.multiprox(Mlake = LEC.ETSH.MAAT, Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
-                           Smooth.param = 0.4, Title = "(A) MAAT-proxies", Scale.y.free = T, Add.CI = T, Facet.tit.color = T, Rotate.panel.tit = T, Add.parenthesis = T, Clean.labels = T, 
-                           Panel.space.y = -4, Event.clim = c( 4200, 8200))
-      p2 <- Plot.multiprox(Mlake = LEC.ETSH.MAP, Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), Size.panel.tit = 10, 
-                           Smooth.param = 0.4, Title = "(A) MAP-proxies", Bar.size = 1, Scale.y.free = T, Add.CI = T, Facet.tit.color = T, Rotate.panel.tit = T, Add.parenthesis = T, Clean.labels = T, 
-                           Panel.space.y = -4, Event.clim = c( 4200, 8200))
-      p3 <- p1 + p2
-      W = 800; H = 1200; Save.plot = "Figures/SI/Figure_S8.pdf"
-      ggsave(filename = Save.plot, p3, width = W*0.026458333, height = H*0.026458333, units = "cm")
-      
-      #### Multi proxy plot (selected) ####
-      Selection.MAAT <- c(4,5,3,2,1)
-      Selection.MAP <- c(6,4,8,5,9,7,1,2)
-      Clim.surf.ETSH <- Meta.data.ETSH2[!duplicated(Meta.data.ETSH2$Site_full),]
-      Clim.surf.ETSH$Lake <- Clim.surf.ETSH$Site_full
-      
-      pMAAT <- Plot.multiprox(Mlake = LEC.ETSH.MAAT[Selection.MAAT], Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
-                              Smooth.param = 0.4, Title = "(A) Eastern Tian Shan - temperature", 
-                              Scale.y.free = T, Add.CI = T, 
-                              Panel.space.y = -5, Size.panel.tit = 12, Leg.pos = "none", Show.line = F, Facet.tit.color = T,
-                              Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("W", "C", "C"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
-                              Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
-      
-      pMAP <- Plot.multiprox(Mlake = LEC.ETSH.MAP[Selection.MAP], Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
-                             Smooth.param = 0.4, Title = "(B) Eastern Tian Shan - moisture", 
-                             Scale.y.free = T, Add.CI = T, Panel.space.y = -10,
-                             Size.panel.tit = 12, Leg.pos = "none", Show.line = F, Facet.tit.color = T,
-                             Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("Wt", "D", "D"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
-                             Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
-      
-      H = 1100; W = 1000; Save.plot = "Figures/Main_Figures/Figure_9.pdf"
-      p.Select <- pMAAT | pMAP
-      ggsave(filename = Save.plot, p.Select, width = W*0.026458333, height = H*0.026458333, units = "cm")
-      
-      #### Export ####
-      dir.create("Results/East_TSH/Site/", recursive = T)
-      saveRDS(Meta.data.ETSH, "Results/East_TSH/Site/Cores_ETSH_synthese_WCA.Rds")
-      
-    }
+    
+    p1 <- Plot.multiprox(Mlake = LEC.cauc.MAAT, Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
+                         Smooth.param = 0.4, Title = "(A) MAAT-proxies", Scale.y.free = T, Clean.labels = T, Add.parenthesis = T, Add.CI = T,
+                         Panel.space.y = -4, Event.clim = c( 4200, 8200))
+    p2 <- Plot.multiprox(Mlake = LEC.cauc.MAP, Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
+                         Smooth.param = 0.4, Title = "(A) MAP-proxies", Scale.y.free = T, Clean.labels = T, Add.parenthesis = T, Add.CI = T,
+                         Panel.space.y = -4, Event.clim = c( 4200, 8200))
+    p3 <- p1 + p2
+    W = 900; H = 1000; Save.plot = "Figures/SI/Figure_S4.pdf"
+    ggsave(filename = Save.plot, p3, width = W*0.026458333, height = H*0.026458333, units = "cm")
+    
+    #### Multi proxy plot (selected) ####
+    Selection.MAAT <- c(4,3,7,8,9,11)
+    Selection.MAP <- c(3,7,13,9,12,8)
+    Clim.surf.cauc <- Meta.data.cauc2[!duplicated(Meta.data.cauc2$Site_full),]
+    Clim.surf.cauc$Lake <- Clim.surf.cauc$Site_full
+    
+    pMAAT <- Plot.multiprox(Mlake = LEC.cauc.MAAT[Selection.MAAT], Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
+                            Smooth.param = 0.4, Title = "(A) Caucasus - temperature", 
+                            Scale.y.free = T, Add.CI = T, Facet.tit.color = T,
+                            Panel.space.y = -10, Size.panel.tit = 11, Leg.pos = "none", Show.line = F,
+                            Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("W", "C", "W"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
+                            Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
+    
+    pMAP <- Plot.multiprox(Mlake = LEC.cauc.MAP[Selection.MAP], Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
+                           Smooth.param = 0.4, Title = "(B) Caucasus - moisture", Scale.y.free = T, Add.CI = T, Panel.space.y = -5,
+                           Size.panel.tit = 11, Leg.pos = "none", Show.line = F, Facet.tit.color = T,
+                           Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("D", "Wt", "D"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
+                           Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
+    
+    W = 900; H = 800; Save.plot = "Figures/Main_Figures/Figure_5.pdf"
+    p.Select <- pMAAT | pMAP
+    ggsave(filename = Save.plot, p.Select, width = W*0.026458333, height = H*0.026458333, units = "cm")
+    
+    #### Export results ####
+    dir.create("Results/Caucasus/Site/", recursive = T)
+    saveRDS(Meta.data.cauc, "Results/Caucasus/Site/Cores_Caucasus_synthese_WCA.Rds")
   }
   
-  #### Check for the whole WCA ####
-  Area.clusters = F
-  if(Area.clusters == T){
-    Scaling.final = T; Anomaly.final = F; Smooth.final = 0.4; Add.smooth.final = F; Windows.length.final = 200; Limits = c(500, 12500)
+  #### Fig. 6 + S5 (Iran) ####
+  if(Fig.6 == T){
+    #### Settings ####
+    Limits = c(0, 12000)
+    Windows.length = 500
+    Remove.sites <- c("Gol_E_Zard", "Sibaki", "Kandahar", "Maharlou", "Parishan", "Seistan", "Pir_Ghar")
+    Keep.area <- c("Iran")
+    Add.TraCE = T
     
-    #### Import manual section of sites ####
-    Meta.data.Ir <- readRDS("Results/Iran/Site/Cores_Iran_synthese_WCA.Rds")
-    Meta.data.cauc <- readRDS("Results/Caucasus/Site/Cores_Caucasus_synthese_WCA.Rds")
-    Meta.data.ETSH <- readRDS("Results/East_TSH/Site/Cores_ETSH_synthese_WCA.Rds")
-    Meta.data.WTSH <- readRDS("Results/West_TSH/Site/Cores_WTSH_synthese_WCA.Rds")
-    Meta.data.Cas <- readRDS("Results/Caspian/Site/Cores_Caspian_synthese_WCA.Rds")
-    Sub.MD.WCA <- rbind(Meta.data.Ir, Meta.data.cauc, Meta.data.ETSH, Meta.data.WTSH, Meta.data.Cas)
+    #### Filter ####
+    if(is.null(Keep.area) == F){Meta.data.Ir <- Meta.data.no.filter[Meta.data.no.filter$Area %in% Keep.area,]}
+    if(is.null(Remove.sites) == F){Meta.data.Ir <- Meta.data.Ir[!Meta.data.Ir$Site %in% Remove.sites,]}
+    LEC.Ir.raw <- List.Ensemble[Meta.data.Ir$ID]
+    LEC.Ir.raw <- Filter(function(df) {any(!is.na(df[, -1, drop = F]))}, LEC.Ir.raw)
     
-    Sub.MD.WCA$Area[Sub.MD.WCA$Area == "Touran"] <- "Caspian"
-    Sub.MD.WCA$Area[Sub.MD.WCA$Area == "Caspian"] <- "Caspian-Aral"
+    LEC.Ir <- Stacking.quantif(Imput.list = LEC.Ir.raw, Limits = Limits, Filter.cut.off = 200, Interp.step = 100, Scaling = F,
+                               Return.list = T, Interpolation = F, Windows.length = Windows.length, Keep.clim = paste(Param.clim, "FT_Ensemble", sep = "_"), New.param.names = Param.clim)
     
-    Meta.data$Area[Meta.data$Area == "Touran"] <- "Caspian"
-    Meta.data$Area[Meta.data$Area == "Caspian"] <- "Caspian-Aral"
+    #### TraCE extraction (synthese WCA) ####
+    if(Add.TraCE == T){
+      LEC.Ir <- c(LEC.Ir, Tra.Ir)
+      Group.by <- "Recons.type"
+    }
+    else{Group.by <- NULL}
     
-    Meta.data.ECA <- Meta.data[Meta.data$Area %in% c("East. TSH", "Dzhougarie", "MP", "TP", "Qinghai", "Baikal", "Inner Mong.", "Himalaya", "Altai", "Kazakh Ste."),]
-    Meta.data.WCA <- Meta.data[Meta.data$Area %in% c("Iran", "Caucasus", "Caspian-Aral", "West. TSH", "East. TSH"),]
+    #### Multi proxy plot ####
+    LEC.Ir <- Stacking.quantif(Imput.list = LEC.Ir.raw, Limits = Limits, Return.list = T, Windows.length = Windows.length)
+    Meta.data.Ir2 <- Meta.data.Ir[Meta.data.Ir$ID %in% names(LEC.Ir),]
+    LEC.Ir.MAAT <- Prep.2.multiproxy.plot(LEC.Ir, MD = Meta.data.Ir2, Param.clim = "MAAT", Keep.CI = T)
+    LEC.Ir.MAP <- Prep.2.multiproxy.plot(LEC.Ir, MD = Meta.data.Ir2, Param.clim = "MAP", Keep.CI = T)
     
-    #### Insolation extraction ####
-    Insolation.extraction = T
-    if(Insolation.extraction == T){
+    p1 <- Plot.multiprox(Mlake = LEC.Ir.MAAT, Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
+                         Smooth.param = 0.4, Title = "(A) MAAT-proxies", Scale.y.free = T, Clean.labels = T, Add.parenthesis = T, Add.CI = T,
+                         Panel.space.y = 10, Event.clim = c( 4200, 8200))
+    p2 <- Plot.multiprox(Mlake = LEC.Ir.MAP, Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
+                         Smooth.param = 0.4, Title = "(A) MAP-proxies", Scale.y.free = T, Clean.labels = T, Add.parenthesis = T, Add.CI = T,
+                         Panel.space.y = -1, Event.clim = c( 4200, 8200))
+    p3 <- p1 + p2
+    W = 900; H = 850; Save.plot = "Figures/SI/Figure_S5.pdf"
+    ggsave(filename = Save.plot, p3, width = W*0.026458333, height = H*0.026458333, units = "cm")
+    
+    #### Multi proxy plot (selected) ####
+    Selection.MAAT <- c(3,1,4,2,5)
+    Selection.MAP <- c(3,7,10,1,6,9,12,11)
+    
+    Clim.surf.Ir <- Meta.data.Ir2[!duplicated(Meta.data.Ir2$Site_full),]
+    Clim.surf.Ir$Lake <- Clim.surf.Ir$Site_full
+    
+    pMAAT <- Plot.multiprox(Mlake = LEC.Ir.MAAT[Selection.MAAT], Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
+                            Smooth.param = 0.4, Title = "(A) Iran - temperature", 
+                            Scale.y.free = T, Add.CI = T, 
+                            Panel.space.y = 0, Size.panel.tit = 9, Leg.pos = "none", Show.line = F, Facet.tit.color = T,
+                            Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("W", "C", "W"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
+                            Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
+    
+    pMAP <- Plot.multiprox(Mlake = LEC.Ir.MAP[Selection.MAP], Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
+                           Smooth.param = 0.4, Title = "(B) Iran - moisture", Scale.y.free = T, Add.CI = T, 
+                           # Surf.val = Clim.surf.Ir,
+                           Panel.space.y = -10,
+                           Size.panel.tit = 9, Leg.pos = "none", Show.line = F, Facet.tit.color = T,
+                           Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("D", "Wt", "D"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
+                           Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
+    
+    p.Select <- pMAAT | pMAP
+    W = 900; H = 850; Save.plot = "Figures/Main_Figures/Figure_6.pdf"
+    ggsave(filename = Save.plot, p.Select, width = W*0.026458333, height = H*0.026458333, units = "cm")
+    
+    #### Export results ####
+    dir.create("Results/Iran/Site/", recursive = T)
+    saveRDS(Meta.data.Ir, "Results/Iran/Site/Cores_Iran_synthese_WCA.Rds")
+  }
+  
+  #### Fig. 7 + S6 (Caspienne-Aral) ####
+  if(Fig.7 == T){
+    #### Settings ####
+    Limits = c(0, 12000)
+    Windows.length = 500
+    Add.TraCE = T
+    Re.extract.TraCE = T
+    Keep.area = c("Caspian", "Touran")
+    Remove.sites <- c("Amirkola", "Anzali", "Astaneh", "Langarud", "Klaus", "Aral_07")
+    
+    #### Filter ####
+    if(is.null(Keep.area) == F){Meta.data.Cas <- Meta.data.no.filter[Meta.data.no.filter$Area %in% Keep.area,]}
+    if(is.null(Remove.sites) == F){Meta.data.Cas <- Meta.data.Cas[!Meta.data.Cas$Site %in% Remove.sites,]}
+    LEC.Cas.raw <- List.Ensemble[Meta.data.Cas$ID]
+    LEC.Cas.raw <- Filter(function(df) {any(!is.na(df[, -1, drop = F]))}, LEC.Cas.raw)
+    
+    LEC.Cas <- Stacking.quantif(Imput.list = LEC.Cas.raw, Limits = Limits, Filter.cut.off = 200, Interp.step = 100,
+                                Return.list = T, Interpolation = F, Windows.length = Windows.length, Keep.clim = paste(Param.clim, "FT_Ensemble", sep = "_"), New.param.names = Param.clim)
+    
+    Meta.data.Cas$Site_full[Meta.data.Cas$Site_full == "GS18"] <- "Caspian (middle)"
+    Meta.data.Cas$Site_full[Meta.data.Cas$Site_full == "South Caspian (CP14, GS_05)"] <- "Caspian (south)"
+    Meta.data.Cas$Site_full[Meta.data.Cas$Site_full == "Golestan (Gomishan, Shahkileh)"] <- "Golestan lagoon"
+    
+    #### TraCE extraction (synthese WCA) ####
+    if(Add.TraCE == T){
+      LEC.Cas <- c(LEC.Cas, Tra.Cas)
+      Group.by <- "Recons.type"
+    }
+    else{Group.by <- NULL}
+    
+    #### Multi proxy plot ####
+    LEC.Cas <- Stacking.quantif(Imput.list = LEC.Cas.raw, Limits = Limits, Return.list = T, Windows.length = Windows.length)
+    Meta.data.Cas2 <- Meta.data.Cas[Meta.data.Cas$ID %in% names(LEC.Cas),]
+    LEC.Cas.MAAT <- Prep.2.multiproxy.plot(LEC.Cas, MD = Meta.data.Cas2, Param.clim = "MAAT", Keep.CI = T)
+    LEC.Cas.MAP <- Prep.2.multiproxy.plot(LEC.Cas, MD = Meta.data.Cas2, Param.clim = "MAP", Keep.CI = T)
+    
+    p1 <- Plot.multiprox(Mlake = LEC.Cas.MAAT, Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
+                         Smooth.param = 0.4, Title = "(A) MAAT-proxies", Add.CI = T,
+                         Panel.space.y = 5, Event.clim = c( 4200, 8200))
+    p2 <- Plot.multiprox(Mlake = LEC.Cas.MAP, Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
+                         Smooth.param = 0.4, Title = "(A) MAP-proxies", Bar.size = 1, Add.CI = T,
+                         Panel.space.y = -4, Event.clim = c( 4200, 8200))
+    
+    W = 900; H = 1000; Save.plot = "Figures/SI/Figure_S6.pdf"
+    p3 <- p1 + p2
+    ggsave(filename = Save.plot, p3, width = W*0.026458333, height = H*0.026458333, units = "cm")
+    
+    #### Multi proxy plot (selected) ####
+    Selection.MAAT <- c(1,3,2,4,5)
+    Selection.MAP <- c(9,8,5,6,4,11)
+    # Selection.MAP <- c(9,8,7,5,6,4)
+    Clim.surf.Cas <- Meta.data.Cas2[!duplicated(Meta.data.Cas2$Site_full),]
+    Clim.surf.Cas$Lake <- Clim.surf.Cas$Site_full
+    
+    pMAAT <- Plot.multiprox(Mlake = LEC.Cas.MAAT[Selection.MAAT], Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
+                            Smooth.param = 0.4, Title = "(A) Caspian/Aral - temperature", 
+                            Scale.y.free = T, Add.CI = T, Facet.tit.color = T,
+                            Panel.space.y = -5, Size.panel.tit = 10, Leg.pos = "none", Show.line = F,
+                            Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("W", "C", "W"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
+                            Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
+    
+    pMAP <- Plot.multiprox(Mlake = LEC.Cas.MAP[Selection.MAP], Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
+                           Smooth.param = 0.4, Title = "(B) Caspian/Aral - moisture", 
+                           Scale.y.free = T, Facet.tit.color = T, Add.CI = T, Panel.space.y = -5, Size.panel.tit = 10, Leg.pos = "none", Show.line = F,
+                           Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("D", "Wt", "D"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
+                           Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
+    
+    W = 900; H = 800; Save.plot = "Figures/Main_Figures/Figure_7.pdf"
+    p.Select <- pMAAT | pMAP
+    ggsave(filename = Save.plot, p.Select, width = W*0.026458333, height = H*0.026458333, units = "cm")
+    
+    #### Export results ####
+    dir.create("Results/Caspian/Site/", recursive = T)
+    saveRDS(Meta.data.Cas, "Results/Caspian/Site/Cores_Caspian_synthese_WCA.Rds")
+  }
+  
+  #### Fig. 8 + S7 (West. TSH) ####
+  if(Fig.8 == T){
+    #### Settings ####
+    Limits = c(0, 12000)
+    Windows.length = 500
+    Add.TraCE = T
+    Re.extract.TraCE = F
+    Keep.area = c("West. TSH")
+    Remove.sites <- c("Bir_Uja", "Ak_Terek", "Nizhnee", "Ortok", "Ashubulak", "Verkhnee", "Issyk_Kul")
+    
+    #### Filter ####
+    if(is.null(Keep.area) == F){Meta.data.WTSH <- Meta.data.no.filter[Meta.data.no.filter$Area %in% Keep.area,]}
+    if(is.null(Remove.sites) == F){Meta.data.WTSH <- Meta.data.WTSH[!Meta.data.WTSH$Site %in% Remove.sites,]}
+    LEC.WTSH.raw <- List.Ensemble[Meta.data.WTSH$ID]
+    LEC.WTSH.raw <- Filter(function(df) {any(!is.na(df[, -1, drop = F]))}, LEC.WTSH.raw)
+    
+    LEC.WTSH <- Stacking.quantif(Imput.list = LEC.WTSH.raw, Limits = Limits, Return.list = T, Windows.length = Windows.length, Keep.clim = paste(Param.clim, "FT_Ensemble", sep = "_"), New.param.names = Param.clim)
+    
+    Meta.data.WTSH$Site_full[Meta.data.WTSH$Site_full == "Issyk-Kul (Issyk_Kul_IK0011, Issyk_Kul_ISKUC087)"] <- "Issyk-Kul"
+    Meta.data.WTSH$Site_full[Meta.data.WTSH$Site_full == "Son-Kul (Son_Kul, SONK_11_D)"] <- "Son-Kul"
+    Meta.data.WTSH$Site_full[Meta.data.WTSH$Site_full == "Tonnel’naya cave"] <- "Tonnelnaya cave"
+    
+    #### TraCE extraction (synthese WCA) ####
+    if(Add.TraCE == T){
+      LEC.WTSH <- c(LEC.WTSH, Tra.WTSH)
+      Group.by <- "Recons.type"
+    }
+    else{Group.by <- NULL}
+    
+    #### Multi proxy plot (all) ####
+    LEC.WTSH <- Stacking.quantif(Imput.list = LEC.WTSH.raw, Limits = Limits, Return.list = T, Windows.length = Windows.length)
+    Meta.data.WTSH2 <- Meta.data.WTSH[Meta.data.WTSH$ID %in% names(LEC.WTSH),]
+    LEC.WTSH.MAAT <- Prep.2.multiproxy.plot(LEC.WTSH, MD = Meta.data.WTSH2, Param.clim = "MAAT", Keep.CI = T)
+    LEC.WTSH.MAP <- Prep.2.multiproxy.plot(LEC.WTSH, MD = Meta.data.WTSH2, Param.clim = "MAP", Keep.CI = T)
+    
+    p1 <- Plot.multiprox(Mlake = LEC.WTSH.MAAT, Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
+                         Smooth.param = 0.4, Title = "(A) MAAT-proxies", Scale.y.free = T, Add.CI = T, Facet.tit.color = T, Rotate.panel.tit = T, Add.parenthesis = T, Clean.labels = T,
+                         Panel.space.y = -4, Event.clim = c( 4200, 8200))
+    p2 <- Plot.multiprox(Mlake = LEC.WTSH.MAP, Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), Size.panel.tit = 6, 
+                         Smooth.param = 0.4, Title = "(A) MAP-proxies", Bar.size = 1, Scale.y.free = T, Add.CI = T, Facet.tit.color = T, Rotate.panel.tit = T, Add.parenthesis = T, Clean.labels = T,
+                         Panel.space.y = -4, Event.clim = c( 4200, 8200))
+    p3 <- p1 + p2
+    W = 1000; H = 1600; Save.plot = "Figures/SI/Figure_S7.pdf"
+    ggsave(filename = Save.plot, p3, width = W*0.026458333, height = H*0.026458333, units = "cm")
+    
+    #### Multi proxy plot (selected) ####
+    Selection.MAAT <- c(2,7,6,1,3,4,5)
+    Selection.MAP <- c(16,4,7,2,6,5,19,8,10,15)
+    Clim.surf.WTSH <- Meta.data.WTSH2[!duplicated(Meta.data.WTSH2$Site_full),]
+    Clim.surf.WTSH$Lake <- Clim.surf.WTSH$Site_full
+    
+    pMAAT <- Plot.multiprox(Mlake = LEC.WTSH.MAAT[Selection.MAAT], Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
+                            Smooth.param = 0.4, Title = "(A) Western Tian Shan - temperature", 
+                            Scale.y.free = T, Facet.tit.color = T, Add.CI = T, 
+                            Panel.space.y = -10, Size.panel.tit = 12, Leg.pos = "none", Show.line = F,
+                            Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("W", "C", "W"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
+                            Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
+    
+    pMAP <- Plot.multiprox(Mlake = LEC.WTSH.MAP[Selection.MAP], Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
+                           Smooth.param = 0.4, Title = "(B) Western Tian Shan - moisture", 
+                           Scale.y.free = T, Add.CI = T, Panel.space.y = -5, Facet.tit.color = T,
+                           Size.panel.tit = 10, Leg.pos = "none", Show.line = F,
+                           Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("D", "Wt", "D"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
+                           Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
+    
+    H = 1100; W = 1000; Save.plot = "Figures/Main_Figures/Figure_8.pdf"
+    
+    p.Select <- pMAAT | pMAP
+    ggsave(filename = Save.plot, p.Select, width = W*0.026458333, height = H*0.026458333, units = "cm")
+    
+    #### Export results ####
+    dir.create("Results/West_TSH/Site/", recursive = T)
+    saveRDS(Meta.data.WTSH, "Results/West_TSH/Site/Cores_WTSH_synthese_WCA.Rds")
+  }
+  
+  #### Fig. 9 + S8 (East. TSH) ####
+  if(Fig.9 == T){
+    #### Settings ####
+    Limits = c(0, 12000)
+    Windows.length = 500
+    Add.TraCE = T
+    Re.extract.TraCE = F
+    Keep.area = c("East. TSH")
+    Remove.sites <- c("Xiao_Yourdusi", "Xiaoxigou", "Chaiwopu_CKF", "KS15", "XEBLK", "XY17", "Huashuwozi", "Daxigou")
+    
+    #### Filter ####
+    if(is.null(Keep.area) == F){Meta.data.ETSH <- Meta.data.no.filter[Meta.data.no.filter$Area %in% Keep.area,]}
+    if(is.null(Remove.sites) == F){Meta.data.ETSH <- Meta.data.ETSH[!Meta.data.ETSH$Site %in% Remove.sites,]}
+    LEC.ETSH.raw <- List.Ensemble[Meta.data.ETSH$ID]
+    LEC.ETSH.raw <- Filter(function(df) {any(!is.na(df[, -1, drop = F]))}, LEC.ETSH.raw)
+    
+    LEC.ETSH <- Stacking.quantif(Imput.list = LEC.ETSH.raw, Limits = Limits, Return.list = T, Windows.length = Windows.length, Keep.clim = paste(Param.clim, "FT_Ensemble", sep = "_"), New.param.names = Param.clim)
+    
+    Meta.data.ETSH$Site_full[Meta.data.ETSH$Site_full == "Yili River (Yili, Yili_TKP)"] <- "Yili River"
+    
+    #### TraCE extraction (synthese WCA) ####
+    if(Add.TraCE == T){
+      LEC.ETSH <- c(LEC.ETSH, Tra.ETSH)
+      Group.by <- "Recons.type"
+    }
+    else{Group.by <- NULL}
+    
+    #### Multi proxy plot (all) ####
+    LEC.ETSH <- Stacking.quantif(Imput.list = LEC.ETSH.raw, Limits = Limits, Return.list = T, Windows.length = Windows.length)
+    Meta.data.ETSH2 <- Meta.data.ETSH[Meta.data.ETSH$ID %in% names(LEC.ETSH),]
+    LEC.ETSH.MAAT <- Prep.2.multiproxy.plot(LEC.ETSH, MD = Meta.data.ETSH2, Param.clim = "MAAT", Keep.CI = T)
+    LEC.ETSH.MAP <- Prep.2.multiproxy.plot(LEC.ETSH, MD = Meta.data.ETSH2, Param.clim = "MAP", Keep.CI = T)
+    
+    p1 <- Plot.multiprox(Mlake = LEC.ETSH.MAAT, Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), 
+                         Smooth.param = 0.4, Title = "(A) MAAT-proxies", Scale.y.free = T, Add.CI = T, Facet.tit.color = T, Rotate.panel.tit = T, Add.parenthesis = T, Clean.labels = T, 
+                         Panel.space.y = -4, Event.clim = c( 4200, 8200))
+    p2 <- Plot.multiprox(Mlake = LEC.ETSH.MAP, Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Leg.pos = "bottom", Color.by.proxy = T, Age.depth = c("Age"), Size.panel.tit = 10, 
+                         Smooth.param = 0.4, Title = "(A) MAP-proxies", Bar.size = 1, Scale.y.free = T, Add.CI = T, Facet.tit.color = T, Rotate.panel.tit = T, Add.parenthesis = T, Clean.labels = T, 
+                         Panel.space.y = -4, Event.clim = c( 4200, 8200))
+    p3 <- p1 + p2
+    W = 800; H = 1200; Save.plot = "Figures/SI/Figure_S8.pdf"
+    ggsave(filename = Save.plot, p3, width = W*0.026458333, height = H*0.026458333, units = "cm")
+    
+    #### Multi proxy plot (selected) ####
+    Selection.MAAT <- c(4,5,3,2,1)
+    Selection.MAP <- c(6,4,8,5,9,7,1,2)
+    Clim.surf.ETSH <- Meta.data.ETSH2[!duplicated(Meta.data.ETSH2$Site_full),]
+    Clim.surf.ETSH$Lake <- Clim.surf.ETSH$Site_full
+    
+    pMAAT <- Plot.multiprox(Mlake = LEC.ETSH.MAAT[Selection.MAAT], Param.clim = c("MAAT"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
+                            Smooth.param = 0.4, Title = "(A) Eastern Tian Shan - temperature", 
+                            Scale.y.free = T, Add.CI = T, 
+                            Panel.space.y = -5, Size.panel.tit = 12, Leg.pos = "none", Show.line = F, Facet.tit.color = T,
+                            Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("W", "C", "C"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
+                            Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
+    
+    pMAP <- Plot.multiprox(Mlake = LEC.ETSH.MAP[Selection.MAP], Param.clim = c("MAP"), Manual.sort = T, Limites = Limits, Color.by.proxy = T, Age.depth = c("Age"), 
+                           Smooth.param = 0.4, Title = "(B) Eastern Tian Shan - moisture", 
+                           Scale.y.free = T, Add.CI = T, Panel.space.y = -10,
+                           Size.panel.tit = 12, Leg.pos = "none", Show.line = F, Facet.tit.color = T,
+                           Event.clim = c( 4200, 8200), Name.zone = c("Late Hol.", "Mid-Hol.", "Early Hol."), Temp.zone = c("Wt", "D", "D"), Zone.clim  = c(0, 4200, 4200, 8200, 8200, 12000), Zone.clim.box = F,
+                           Add.parenthesis = T, Clean.labels = T, Alpha.zone.clim = 0, Rotate.panel.tit = T)
+    
+    H = 1100; W = 1000; Save.plot = "Figures/Main_Figures/Figure_9.pdf"
+    p.Select <- pMAAT | pMAP
+    ggsave(filename = Save.plot, p.Select, width = W*0.026458333, height = H*0.026458333, units = "cm")
+    
+    #### Export ####
+    dir.create("Results/East_TSH/Site/", recursive = T)
+    saveRDS(Meta.data.ETSH, "Results/East_TSH/Site/Cores_ETSH_synthese_WCA.Rds")
+    
+  }
+  
+  #### Import manual section of sites ####
+  Meta.data.Ir <- readRDS("Results/Iran/Site/Cores_Iran_synthese_WCA.Rds")
+  Meta.data.cauc <- readRDS("Results/Caucasus/Site/Cores_Caucasus_synthese_WCA.Rds")
+  Meta.data.ETSH <- readRDS("Results/East_TSH/Site/Cores_ETSH_synthese_WCA.Rds")
+  Meta.data.WTSH <- readRDS("Results/West_TSH/Site/Cores_WTSH_synthese_WCA.Rds")
+  Meta.data.Cas <- readRDS("Results/Caspian/Site/Cores_Caspian_synthese_WCA.Rds")
+  Sub.MD.WCA <- rbind(Meta.data.Ir, Meta.data.cauc, Meta.data.ETSH, Meta.data.WTSH, Meta.data.Cas)
+  
+  Sub.MD.WCA$Area[Sub.MD.WCA$Area == "Touran"] <- "Caspian"
+  Sub.MD.WCA$Area[Sub.MD.WCA$Area == "Caspian"] <- "Caspian-Aral"
+  
+  Meta.data$Area[Meta.data$Area == "Touran"] <- "Caspian"
+  Meta.data$Area[Meta.data$Area == "Caspian"] <- "Caspian-Aral"
+  Meta.data.WCA <- Meta.data[Meta.data$Area %in% c("Iran", "Caucasus", "Caspian-Aral", "West. TSH", "East. TSH"),]
+  Meta.data.WCA.no.filter <- Meta.data.no.filter[Meta.data.no.filter$Area %in% c("Iran", "Caucasus", "Caspian-Aral", "West. TSH", "East. TSH"),]
+  Meta.data.WCA.no.filter <- Meta.data.WCA.no.filter[Meta.data.WCA.no.filter$Acces == "T",]
+  
+  List.Ensemble.clean.WCA.selected <- List.Ensemble.clean[Meta.data.WCA$ID]
+  List.Ensemble.clean.WCA.selected <- Filter(function(df) {any(!is.na(df[, -1, drop = F]))}, List.Ensemble.clean.WCA.selected)
+  
+  Meta.data.WCA.selected <- Meta.data.WCA[Meta.data.WCA$ID %in% names(List.Ensemble.clean.WCA.selected),]
+  Meta.data.WCA.selected <- Meta.data.WCA.selected[Meta.data.WCA.selected$ID %in% Sub.MD.WCA$ID,]
+  
+  List.Ensemble.clean.WCA.selected$`477|Wenqu|Pol`$MAAT <- NA
+  List.Ensemble.clean.WCA.selected <- List.Ensemble.clean[Meta.data.WCA$ID]
+  Sub.MD.WCA.in.stack <- Meta.data.WCA[Meta.data.WCA$ID %in% names(List.Ensemble.clean.WCA.selected),]
+  
+  saveRDS(List.Ensemble.clean.WCA.selected, "Results/WCA/List_Ensemble_clean_WCA_selected.Rds")
+  saveRDS(Sub.MD.WCA.in.stack, "Results/WCA/Meta_data_WCA_study_stacked_list.Rds")
+  saveRDS(Meta.data.WCA.selected, "Results/WCA/Meta_data_WCA_study_selected.Rds")
+  
+  List.Ensemble.clean.WCA.selected <- c(List.Ensemble.clean.WCA.selected, Tra.Ir, Tra.ETSH, Tra.Cas, Tra.cauc, Tra.WTSH)
+  Meta.data.WCA.selected$Recons.type <-"1. Data"
+  Meta.data.WCA.selected <- rbind(Meta.data.WCA.selected, Meta.data.model.Ir, Meta.data.model.ETSH, Meta.data.model.Cas, Meta.data.model.cauc, Meta.data.model.WTSH)
+  Meta.data.WCA.selected$Area[Meta.data.WCA.selected$Area == "Touran"] <- "Caspian-Aral"
+  Meta.data.WCA.selected$Area[Meta.data.WCA.selected$Area == "Caspian"] <- "Caspian-Aral"
+  
+  #### Fig. 3 (Hol. maps) ####
+  if(Fig.3 == T){
+    Data.map.WCA <- List.Ensemble.clean.WCA.selected[!grepl("\\|TRA", names(List.Ensemble.clean.WCA.selected))]
+    MD.map.WCA <- Meta.data.WCA.selected
+    
+    Data.map.WCA <- Data.map.WCA[grepl("\\|Pol", names(Data.map.WCA))]
+    Data.map.WCA <- Data.map.WCA[!grepl("SonKu", names(Data.map.WCA))]
+    
+    A <- Map.panel.climat(
+      List.df = Data.map.WCA,
+      Timespan = c(200, 4200, 8200, 11700),
+      Meta.data = MD.map.WCA,
+      Display.plot = T, Altitudinal.gradient = F,
+      Period.lab = c("Late Hol.", "Mid-Hol.", "Early Hol."),
+      Color.by.rank = T, Add.emptysite = T, Use.Meta.data.4.empty.site = T,
+      Map.dot.size = 4.5, Empty.site.shape = 4, DEM.alpha = .6,
+      Emphase.proxy = "Pollen", Remove.overlap = T, Show.label = F, Overlap.seuil = 80000,
+      Title.size = 12, Dot.alpha = 1, 
+      Add.DEM = F, # the DEM has been removed in this repository because of the raster size
+      Map.leg.pos = c(0.002, 0.999), Map.limits = c(41,89,26,49),
+      Save.plot = "Figures/Main_Figures/Figure_3.pdf", H = 750, W = 850
+    )
+  }
+    
+  #### Fig. 4 (alt. gradient) ####
+  if(Fig.4 == T){
+    Data.map.WCA <- List.Ensemble.clean.WCA.selected[!grepl("\\|TRA", names(List.Ensemble.clean.WCA.selected))]
+    MD.map.WCA <- Meta.data.WCA.selected
+    
+    Data.map.WCA <- Data.map.WCA[grepl("\\|Pol", names(Data.map.WCA))]
+    Data.map.WCA <- Data.map.WCA[!grepl("SonKu", names(Data.map.WCA))]
+    
+    B <- Map.panel.climat(
+      List.df = Data.map.WCA,
+      Timespan = c(200, 4200, 8200, 11700),
+      Meta.data = MD.map.WCA, 
+      Display.plot = F, Show.stats = T,
+      Altitudinal.gradient = T, Elevation.range = c(-300, 3800),
+      Period.lab = c("Late Hol.", "Mid-Hol.", "Early Hol."),
+      Color.by.rank = T, Use.Meta.data.4.empty.site = T,
+      Map.dot.size = 4.5, Empty.site.shape = 4, DEM.alpha = .6,
+      Emphase.proxy = "Pollen", Remove.overlap = T, Show.label = F, Overlap.seuil = 80000,
+      Title.size = 12, Dot.alpha = 1, Add.DEM = F,
+      Map.leg.pos = c(0.002, 0.999), Map.limits = c(41,89,26,49),
+      Save.plot = "Figures/Main_Figures/Figure_4.pdf", H = 500, W = 850
+    )
+  }
+  
+  #### Fig. 10 (stacks) ####
+  if(Fig.10 == T){
+    Gr.area.WCA <- Plot.stack.groups(List.clim = List.Ensemble.clean.WCA.selected, Meta.data = Meta.data.WCA.selected, Group = "Area", 
+                                     Subgroup = "Recons.type", Limits = Limits,
+                                     Plot.2.merge = F, Display.map = T, Map.limits = c(41,89,26,49),
+                                     Add.count.per.bin = F, Windows.length = Windows.length.final, 
+                                     Save.data.Rds = "Results/WCA/Holocene_WCA_clusters_zone.Rds",
+                                     Show.strip = T, Facet.by.group = T, Display.CI = T, Leg.ncol = NULL, Width.pour.map = 30, CI.alpha = .4,
+                                     Facet.order = c("Iran", "Caucasus", "Caspian-Aral", "Touran", "West. TSH", "East. TSH"), 
+                                     Remove.extrems = F, Color.by.clim = T, Error.alpha = .2, Add.error.zone = T,
+                                     Add.vlines = c(4200, 8200), Scaling = Scaling.final, Anomaly = Anomaly.final, Smooth.param = Smooth.final, Add.smooth = Add.smooth.final,
+                                     Name.param.clim = c("Temperature", "Moisture"), Add.emptysite = T, Empty.site.from.Meta.data = T, Map.dot.size = 3.2,
+                                     Save.plot = "Figures/Main_Figures/Figure_10.pdf", H = 1000, W = 1115,
+                                     Save.plot.Rds = "Results/WCA/Holocene_ACA_clusters_WCA_plot.Rds")
+  }
+  
+  #### Fig. 11 (mat. correl.) ####
+  if(Fig.11 == T){
+    #### Matrice correlation (prep) ####
+    Order.zn <- c("Iran", "Caucasus", "Caspian-Aral", "West. TSH", "East. TSH")
+    Keep.ages <- intersect(unique(Gr.area.WCA.data$Age), unique(Gr.area.WCA.mode$Age))
+    Insol <- Insol.Uz[Insol.Uz$Age %in% Keep.ages,] 
+    Insol <- subset(Insol, select = - c(Age))
+    
+    Gr.area.WCA.data.MAP <- Gr.area.WCA.data[c("Age", "MAP", "Group")] 
+    Gr.area.WCA.data.MAP <- dcast(Gr.area.WCA.data.MAP, Age ~ Group, value.var = "MAP")
+    Gr.area.WCA.data.MAP <- subset(Gr.area.WCA.data.MAP, select = - c(Age))
+    Gr.area.WCA.data.MAP <- Gr.area.WCA.data.MAP[Order.zn]
+    
+    Gr.area.WCA.mode.MAP <- Gr.area.WCA.mode[c("Age", "MAP", "Group")] 
+    Gr.area.WCA.mode.MAP <- dcast(Gr.area.WCA.mode.MAP, Age ~ Group, value.var = "MAP")
+    Gr.area.WCA.mode.MAP <- subset(Gr.area.WCA.mode.MAP, select = - c(Age))
+    Gr.area.WCA.mode.MAP <- Gr.area.WCA.mode.MAP[Order.zn]
+    
+    Gr.area.WCA.data.MAP <- Gr.area.WCA.data.MAP[intersect(row.names(Gr.area.WCA.data.MAP), row.names(Gr.area.WCA.mode.MAP)),]
+    Gr.area.WCA.mode.MAP <- Gr.area.WCA.mode.MAP[intersect(row.names(Gr.area.WCA.data.MAP), row.names(Gr.area.WCA.mode.MAP)),]
+    row.names(Insol) <- row.names(Gr.area.WCA.data.MAP)
+    
+    Gr.area.WCA.data.MAAT <- Gr.area.WCA.data[c("Age", "MAAT", "Group")] 
+    Gr.area.WCA.data.MAAT <- dcast(Gr.area.WCA.data.MAAT, Age ~ Group, value.var = "MAAT")
+    Gr.area.WCA.data.MAAT <- subset(Gr.area.WCA.data.MAAT, select = - c(Age))
+    Gr.area.WCA.data.MAAT <- Gr.area.WCA.data.MAAT[Order.zn]
+    
+    Gr.area.WCA.mode.MAAT <- Gr.area.WCA.mode[c("Age", "MAAT", "Group")] 
+    Gr.area.WCA.mode.MAAT <- dcast(Gr.area.WCA.mode.MAAT, Age ~ Group, value.var = "MAAT")
+    Gr.area.WCA.mode.MAAT <- subset(Gr.area.WCA.mode.MAAT, select = - c(Age))
+    Gr.area.WCA.mode.MAAT <- Gr.area.WCA.mode.MAAT[Order.zn]
+    
+    Gr.area.WCA.data.MAAT <- Gr.area.WCA.data.MAAT[intersect(row.names(Gr.area.WCA.data.MAAT), row.names(Gr.area.WCA.mode.MAAT)),]
+    Gr.area.WCA.mode.MAAT <- Gr.area.WCA.mode.MAAT[intersect(row.names(Gr.area.WCA.data.MAAT), row.names(Gr.area.WCA.mode.MAAT)),]
+    row.names(Insol) <- row.names(Gr.area.WCA.data.MAAT)
+    
+    Insol <- Insol[c(4,2,3,1)]
+    
+    #### Matrice correlation (plot) ####
+    Perm = T; My_perm = 9#999
+    H = 500*.8; W = 800*.8; Save.matcor.WCA = "Figures/Main_Figures/Figure_11.pdf"
+    pdf(file = Save.matcor.WCA, width = W*0.01041666666667, height = H*0.01041666666667)
+    par(mfrow = c(2,3))
+    my_color <- colorRampPalette(c("darkblue", "grey95", "grey95", "darkred"))(20)
+    
+    M1 <- Mat.corel.CWT.clim(Gr.area.WCA.data.MAAT, Gr.area.WCA.data.MAAT, Display = "lower",
+                             Display.pval = "pch", my_color = my_color, Xlab.rot = 0, Xlab.pos = "t",
+                             Permutation.test = Perm, Nb.permutations = My_perm, I.confiance = .95,
+                             Disp.R = "number", Label = F, Average = F,  Bar.pos = "n", Title = "(A) Data vs. Data")
+    
+    M2 <- Mat.corel.CWT.clim(Gr.area.WCA.data.MAAT, Gr.area.WCA.mode.MAAT, #Display = "lower",
+                             Display.pval = "pch", my_color = my_color, Xlab.rot = 0, Xlab.pos = "t", 
+                             Permutation.test = Perm, Nb.permutations = My_perm, I.confiance = .95,
+                             Disp.R = "number", Label = F, Average = F,  Bar.pos = "n", Title = "(B) Data vs. TraCE-21K")
+    
+    M3 <- Mat.corel.CWT.clim(Gr.area.WCA.data.MAAT, Insol, #Display = "lower",
+                             Display.pval = "pch", my_color = my_color, Xlab.rot = 0, Xlab.pos = "t", 
+                             Permutation.test = Perm, Nb.permutations = My_perm, I.confiance = .95, 
+                             Disp.R = "number", Label = F, Average = F,  Bar.pos = "n", Title = "(C) Data vs. Insolation")
+    
+    M4 <- Mat.corel.CWT.clim(Gr.area.WCA.data.MAP, Gr.area.WCA.data.MAP, Display = "lower",
+                             Display.pval = "pch", my_color = my_color, Xlab.rot = 0, Xlab.pos = "t",
+                             Permutation.test = Perm, Nb.permutations = My_perm, I.confiance = .95,
+                             Disp.R = "number", Label = F, Average = F,  Bar.pos = "n")
+    
+    M5 <- Mat.corel.CWT.clim(Gr.area.WCA.data.MAP, Gr.area.WCA.mode.MAP, #Display = "lower",
+                             Display.pval = "pch", my_color = my_color, Xlab.rot = 0, Xlab.pos = "n",
+                             Permutation.test = Perm, Nb.permutations = My_perm, I.confiance = .95,
+                             Disp.R = "number", Label = F, Average = F,  Bar.pos = "n")
+    
+    M6 <- Mat.corel.CWT.clim(Gr.area.WCA.data.MAP, Insol, #Display = "lower",
+                             Display.pval = "pch", my_color = my_color, Xlab.rot = 0, Xlab.pos = "n",
+                             Permutation.test = Perm, Nb.permutations = My_perm, I.confiance = .95,
+                             Disp.R = "number", Label = F, Average = F,  Bar.pos = "n")
+    
+    dev.off()
+    
+  }
+  
+  #### Fig. 12 (stack vs. insol.) ####
+  if(Fig.12 == T){
+    Compar.stack.inso.WCA <- Compar.stack.inso(Mdata = Gr.area.WCA$`1. Data`, Minso = Insol.Uz,
+                                               List.keep = list(c("MAP", "East. TSH", "Winter"), 
+                                                                c("MAP", "East. TSH", "Summer"),
+                                                                c("MAP", "Iran", "Spring"),
+                                                                c("MAP", "West. TSH", "Summer"),
+                                                                c("MAP", "West. TSH", "Spring")), 
+                                               Line.inso.width = 1.5, CI.alpha = .2,
+                                               Facet.order = c("Iran", "West. TSH", "East. TSH"), Leg.pos = "bottom", Leg.ncol = 4, Title.size = 10,
+                                               Reverse.val = c("Spring"),
+                                               Add.vlines = c(4200, 8200), Limits = c(0, 12000),
+                                               Remove.ages = c(600, 12000, 12200),
+                                               Save.plot = "Figures/Main_Figures/Figure_12.pdf", H = 700, W = 500)
+  }
+  
+  #### Fig. 14 (map bias) ####
+  if(Fig.14 == T){
+    #### Settings ####
+    Meta.data = Meta.data.WCA.no.filter
+    
+    Proxy.type = "Proxy"
+    Map.dot.size = 13
+    Map.leg.pos = "bottomright"
+    Map.limits = c(49.5, 94.5, 24, 53)
+    Show.country.borders = T
+    Plot.Density = T
+    Plot.Diversity = T
+    Diversity.panel.kernel = T
+    Diversity.panel.buffer = F
+    Add.DEM = T
+    DEM.alpha = .5
+    Kernel.radius = 250 # km
+    Density.resolution = 200 # Nb x and y cells
+    Save.plot = "Figures/Main_Figures/Figure_14.pdf"
+    H = 600*.9
+    W = 720*.9
+    
+    #### Load SIG data ####
+    Path.SIG = "/media/lucas-dugerdil/DDT4/Documents/Recherche/SIG/"
+    if(exists("study_area") == F){
+      study_area <- st_read(paste0(Path.SIG, "Projets/ACA/Western_Asia/WA_zone_caspian.shp"))
+      study_area <- st_set_crs(study_area, "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+      Caspian <- st_read(paste0(Path.SIG, "Projets/Circum_caspienne/Caspian_extend_political/Caspian_actual_political.shp"))
+      Caspian <- st_set_crs(Caspian, "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+      
+    }
+    
+    names(Meta.data)[grep("^lon|^Lon", names(Meta.data))] <- "Longitude"
+    names(Meta.data)[grep("^lat|^Lat", names(Meta.data))] <- "Latitude"
+    proxy_sf <- st_as_sf(Meta.data, coords = c("Longitude", "Latitude"), crs = 4326)
+    
+    aea_crs <- "+proj=aea +lat_1=25 +lat_2=47 +lat_0=0 +lon_0=85 +datum=WGS84 +units=m +no_defs"
+    study_area_proj <- st_transform(study_area, crs = aea_crs)
+    proxy_proj      <- st_transform(proxy_sf, crs = aea_crs)
+    
+    study_vect <- vect(study_area_proj)
+    proxy_vect <- vect(proxy_proj)
+    r_template <- rast(study_vect, resolution = Density.resolution*1000)
+    proxy_raster <- rasterize(proxy_vect, r_template, field = 1)
+    
+    #### Distance ####
+    if(Plot.Density == F){
+      dist_raster <- distance(proxy_raster)
+      dist_raster_km <- dist_raster / 1000
+      dist_masked <- mask(dist_raster_km, study_vect)
+      dist_df <- as.data.frame(dist_masked, xy = TRUE, na.rm = TRUE)
+      colnames(dist_df)[3] <- "distance_km"
+      My_plot <- geom_raster(data = dist_df, aes(x = x, y = y, fill = distance_km))
+      Fill_scale <- scale_fill_gradientn(name = "Distance to proxy (km)", colours = c("grey90", "#FF9E3D", "darkorange", "darkred")) 
+    }
+    
+    #### Density (kernel) ####
+    if(Plot.Density == T){
+      library(spatstat)
+      library(scales)
+      ppp_points <- as.ppp(proxy_proj["geometry"])
+      Window(ppp_points) <- as.owin(study_area_proj)
+      density_spatstat <- density(ppp_points, dimyx = Density.resolution)
+      density_stars <- stars::st_as_stars(density_spatstat)
+      density_sf <- st_as_sf(density_stars)
+      density_sf <- st_set_crs(density_sf, "+proj=aea +lat_1=25 +lat_2=47 +lat_0=0 +lon_0=85 +datum=WGS84 +units=m +no_defs")
+      density_sf$v <- density_sf$v * 1e12  # now ~0–100 or so
+      My_plot <- geom_sf(data = density_sf, aes(fill = v), colour = NA)
+      
+      Fill_scale <-   scale_fill_gradientn(
+        name = expression("Proxy density" ~ (10^12 ~ "sites.km"^-2)),
+        # colours = c("white", "grey90", "#FF9E3D", "darkorange", "darkred"), transform = "sqrt")
+        colours = c("white", "#ff80e5ff", "#d400aaff", "#800066ff", "#550044ff"), transform = "sqrt")
+    }
+    
+    #### Limits ####
+    if(is.null(Map.limits) == F){
+      bbox_ll <- st_bbox(c(
+        xmin = Map.limits[1],
+        xmax = Map.limits[2],
+        ymin = Map.limits[3],
+        ymax = Map.limits[4]), crs = 4326)
+      
+      bbox_ll_sf <- st_as_sfc(bbox_ll)
+      bbox_proj <- st_transform(bbox_ll_sf, st_crs(study_area_proj))
+      bbox_proj_vals <- st_bbox(bbox_proj)
+      
+      My_coords <- coord_sf(
+        xlim = c(bbox_proj_vals["xmin"], bbox_proj_vals["xmax"]),
+        ylim = c(bbox_proj_vals["ymin"], bbox_proj_vals["ymax"]), expand = F)
+    }
+    else{My_coords <- NULL}
+    
+    #### Diversity (local buffer approach) ####
+    if(Diversity.panel.buffer == T){
+      proxy_types <- unique(proxy_proj[[Proxy.type]])
+      r_list <- list()
+      
+      names(proxy_proj)[names(proxy_proj) == Proxy.type] <- "Proxy"
+      for(ptype in proxy_types){
+        p_sf <- filter(proxy_proj, Proxy == ptype)
+        p_vect <- vect(p_sf[,0])  # keep only geometry
+        r <- rasterize(p_vect, r_template, field=1)
+        r[is.na(r)] <- 0
+        r_list[[ptype]] <- r
+      }
+      
+      proxy_stack <- rast(r_list)  # multilayer raster
+      names(proxy_stack) <- proxy_types
+      
+      radius_m <- Kernel.radius*1000  # 200 km
+      w <- focalMat(proxy_stack[[1]], radius_m, type="circle")
+      
+      proxy_smooth_list <- lapply(1:nlyr(proxy_stack), function(i){
+        focal(proxy_stack[[i]], w, fun=sum, na.rm=TRUE)
+      })
+      
+      proxy_stack_smooth <- rast(proxy_smooth_list)
+      names(proxy_stack_smooth) <- proxy_types
+      
+      shannon_raster <- app(proxy_stack_smooth, fun=function(x){
+        p <- x / sum(x)
+        p <- p[p>0]
+        if(length(p)==0) return(0)
+        -sum(p*log(p))
+      })
+      shannon_raster <- mask(shannon_raster, study_vect)
+      dens_df <- as.data.frame(shannon_raster, xy=TRUE, na.rm=TRUE)
+      colnames(dens_df)[3] <- "shannon"
+      
+      # Scale_fill_2 <- scale_fill_gradientn(name = "Proxy diversity (Shannon)", colours = c("grey90", "#26a186", "royalblue", "#4a51b7", "#461d64"))
+      Scale_fill_2 <- scale_fill_gradientn(name = "Proxy diversity (Shannon)", colours = c("grey90", "#26a186","#4a51b7", "#461d64"))
+      Plot_div <- geom_raster(data = dens_df, aes(x = x, y = y, fill = shannon), alpha = Alpha.layer)
+    }
+    else{Scale_fill_2 <- NULL}
+    
+    #### Diversity (kernel probability approach) ####
+    if(Diversity.panel.kernel == T){
+      library(spatstat)
+      proxy_types <- unique(proxy_proj[[Proxy.type]])
+      
+      ppp_points <- as.ppp(proxy_proj["geometry"])
+      Window(ppp_points) <- as.owin(study_area_proj)
+      dens_list <- list()
+      
+      for(ptype in proxy_types){
+        p_sub <- proxy_proj[proxy_proj[[Proxy.type]] == ptype, ]
+        
+        if(nrow(p_sub) > 0){
+          ppp_sub <- as.ppp(p_sub["geometry"])
+          Window(ppp_sub) <- as.owin(study_area_proj)
+          dens <- density(ppp_sub, sigma = Kernel.radius*1000, dimyx = Density.resolution)
+          dens_list[[ptype]] <- dens
+        }
+      }
+      
+      stars_list <- lapply(dens_list, stars::st_as_stars)
+      dens_stack <- do.call(c, stars_list)
+      dens_df <- as.data.frame(dens_stack, xy = TRUE)
+      dens_mat <- as.matrix(dens_df[ , -(1:2)])
+      row_sum <- rowSums(dens_mat)
+      
+      prob_mat <- dens_mat / row_sum
+      prob_mat[is.na(prob_mat)] <- 0
+      
+      shannon <- -rowSums(prob_mat * log(prob_mat + 1e-12))
+      shannon[is.nan(shannon)] <- 0
+      shannon[shannon == 0] <- NA
+      
+      # Threshold
+      total_density <- rowSums(dens_mat)
+      density_norm <- total_density / max(total_density, na.rm = T)
+      # threshold <- quantile(total_density, 0.1, na.rm = T)  # or fixed value
+      # # threshold <- 0.5
+      # shannon[total_density < threshold] <- NA
+      shannon_weighted <- shannon * density_norm
+      shannon_weighted <- Scaling.fun(shannon_weighted, 0, 1)
+      dens_df$shannon2 <- shannon_weighted
+      # effective_div <- exp(shannon)
+      # dens_df$div_weighted <- effective_div * density_norm
+      # total_density <- rowSums(dens_mat)
+      # density_norm <- total_density / max(total_density, na.rm = T)
+      # shannon_weighted <- shannon * density_norm
+      # dens_df$shannon <- shannon_weighted
+      # dens_df <- dens_df[!is.na(dens_df$shannon), ]
+      
+      dens_df$shannon <- shannon
+      # stop()
+      # dens_df <- dens_df[c(1,2,ncol(dens_df))]
+      
+      dens_df$alpha_val <- as.character(ifelse(dens_df$shannon2 > 0.4, 5,
+                                               ifelse(dens_df$shannon2 > 0.3, 4, 
+                                                      ifelse(dens_df$shannon2 > 0.1, 3, 
+                                                             ifelse(dens_df$shannon2 > 0.05, 2, 
+                                                                    ifelse(dens_df$shannon2 > 0.03, 1, 0))))))
+      dens_df$alpha_val[is.na(dens_df$alpha_val)] <- 0
+      Scale_fill_2 <- scale_fill_gradientn(name = "Proxy diversity (Shannon)", colours = c("grey90", "#26a186","#4a51b7", "#461d64"), na.value = NA)
+      Alpha.layer = 0.8 
+      Plot_div <- geom_raster(data = dens_df, aes(x = x, y = y, fill = shannon), alpha = Alpha.layer)
+    }
+    
+    #### Display DEM ####
+    if(Add.DEM == T){
+      library(raster)
+      Path.world.DEM = paste(Path.SIG, "MNT/WorldClim2_MNT/wc2.1_10m_elev.tif", sep = "")
+      DEM = raster::raster(Path.world.DEM)
+      DEM <- projectRaster(DEM, crs = st_crs(study_area_proj)$proj4string, method="bilinear")
+      DEM <- raster::crop(DEM, raster::extent(bbox_proj_vals["xmin"], bbox_proj_vals["xmax"], bbox_proj_vals["ymin"], bbox_proj_vals["ymax"]))
+      DEM_lowres <- raster::aggregate(DEM, fact = 1, fun = mean, na.rm = TRUE)
+      
+      breaks <- c(-Inf, 0, 250, 500, 1000, 2000, 3000, 4000, 5000, Inf)
+      DEM_disc <- raster::cut(DEM_lowres, breaks = breaks, include.lowest = T)
+      
+      DEM_df <- raster::as.data.frame(DEM_disc, xy = TRUE, na.rm = TRUE)
+      colnames(DEM_df) <- c("x", "y", "elev_class")
+      
+      density_sf$alpha_val <- as.character(ifelse(density_sf$v > 25, 5, 
+                                                  ifelse(density_sf$v > 20, 4, 
+                                                         ifelse(density_sf$v > 15, 3, 
+                                                                ifelse(density_sf$v > 10, 2, 
+                                                                       ifelse(density_sf$v > 5, 1, 0))))))
+      My_plot <- geom_sf(data = density_sf, aes(fill = v, alpha = alpha_val), colour = NA)
+      if(Diversity.panel.kernel == T){Plot_div <- geom_raster(data = dens_df, aes(x = x, y = y, fill = shannon, alpha = alpha_val))}
+      alpha.scale <- scale_alpha_discrete(c("0" = 0.9, "1" = 0.7, "2" = 0.8, "3" = 0.9, "4" = 0.95, "5" = 1), guide = "none")
+      My_DEM <-  geom_raster(data = DEM_df, aes(x = x, y = y, fill = elev_class), alpha = DEM.alpha)
+      DEM_scale <- scale_fill_gradientn(colors = c(NA, "grey90", "grey80", "grey60", "tan3", "sienna4", "white"), guide = "none")
+      Alpha.layer = 0.8
+    }
+    else{My_DEM <- NULL; DEM_scale <- NULL; Alpha.layer = 1; alpha.scale <- NULL}
+    
+    #### Add neighbors ####
+    if(Show.country.borders == T){
+      library("rnaturalearth")
+      library("rnaturalearthdata")
+      world <- ne_countries(scale = "medium", returnclass = "sf")
+      world_proj <- st_transform(world, st_crs(study_area_proj))
+      Country_out <- geom_sf(data = world_proj, fill = "grey", color = "grey40", linewidth = 0.4)
+      Country_in <- geom_sf(data = world_proj, fill = NA, color = "grey40", linewidth = 0.4)
+      Country_in2 <- geom_sf(data = world_proj, fill = NA, color = "grey40", linewidth = 0.4)
+    }
+    else{Country_out <- NULL; Country_in <- NULL}
+    
+    #### Graphical params ####
+    if(Map.leg.pos[1] == "bottomright"){
+      Map.leg.pos = c(0.999, 0.001);
+      My_just = c("right", "bottom")
+    }
+    else{My_just = c(0, 1)}
+    
+    My_theme <- theme(plot.background = element_blank(), panel.grid = element_blank(), panel.border = element_rect(colour = "black", linewidth = 1),
+                      legend.position = Map.leg.pos, legend.justification = My_just, legend.box = "horizontal",
+                      panel.background = element_rect(fill = "#7BACCF"), axis.title = element_blank(),
+                      legend.background = element_rect(fill = alpha("white", 1), color = "black"), legend.box.background = element_blank())
+    
+    My_guide <- guides(
+      fill = guide_colorbar(direction = "horizontal", title.position = "top",
+                            title.hjust = 0, 
+                            barwidth = unit(5.5, "cm"), barheight = unit(0.5, "cm")))
+    
+    #### Map plot (distance ou density) ####
+    p.map <- ggplot() +
+      Country_out + 
+      alpha.scale +
+      My_DEM + DEM_scale +
+      new_scale_fill() +
+      geom_sf(data = Caspian, shape = 4, fill = "#7BACCF", color = "black", linewidth = 0.6) +
+      My_plot +
+      Country_in +
+      geom_sf(data = Caspian, shape = 4, fill = NA, color = "black", linewidth = 0.6) +
+      Fill_scale +
+      geom_sf(data = proxy_proj, shape = 4, fill = "black", color = "black", size = 2, stroke = 0.4) +
+      geom_sf(data = study_area_proj, fill = NA, color = "black", linewidth = 0.6) +
+      My_guide + My_coords +
+      theme_minimal() + My_theme
+    
+    #### Map (diversity) ####
+    if(Plot.Diversity == T){
+      p.map.2 <- ggplot() +
+        Country_out +
+        alpha.scale +
+        geom_sf(data = study_area_proj, fill= "white", color="black", linewidth=0.8) +
+        # Country_in2 +
+        My_DEM + DEM_scale +
+        geom_sf(data = Caspian, shape = 4, fill = "#7BACCF", color = "black", linewidth = 0.6) +
+        new_scale_fill()+
+        Plot_div +
+        Scale_fill_2 +
+        Country_in2 +
+        geom_sf(data = Caspian, shape = 4, fill = NA, color = "black", linewidth = 0.6) +
+        
+        geom_sf(data = proxy_proj, shape = 4, fill = "black", color = "black", size = 2, stroke = 0.4) +
+        geom_sf(data = study_area_proj, fill=NA, color="black", linewidth=0.8) +
+        My_coords + My_guide +
+        theme_minimal() + My_theme
+      
+      p.map <- p.map + p.map.2
+      W = 2*W
+    }
+    #### Export ####
+    if(is.null(Save.plot) == F){
+      if(is.null(W) == F & is.null(H) == F){ggsave(p.map, file = Save.plot, width = W*0.026458333, height = H*0.026458333, units = "cm", limitsize = F)}
+      else{ggsave(Save.plot)}}
+  }
+  #### Fig. S9 (insolation) ####
+  if(Fig.S9 == T){
     Insol.Uz <- Seasonal.insol(Import.path = "Import/Insolation/Laskar_2004", Imported.raw.data = T,
                                Save.Rds = "Results/Insolation/Orbit_seasonnal.Rds",
                                Limits = c(500, 12000), Remove.annual = T, CI.lines = F,
                                Show.CI = T, Show.each.month = T, Anomaly = T, Date.Anomaly = -100,
                                Manual.y.line = c(500, 4200, 8200), Show.Facet = F, Keep.only = c("Summer", "Winter", "Spring", "Autumn"),
                                H = 500, W = 700, Save.plot = "Figures/SI/Figure_S9.pdf")
-    }
-    else{Insol.Uz <- readRDS("Results/Insolation/Orbit_seasonnal.Rds")}
+  }
+  else{Insol.Uz <- readRDS("Results/Insolation/Orbit_seasonnal.Rds")}
+  
+  Gr.area.WCA <- readRDS("Results/WCA/Holocene_WCA_clusters_zone.Rds")
+  Sub.MD.WCA.in.stack <- readRDS("Results/WCA/Meta_data_WCA_study_stacked_list.Rds")
+  Meta.data.WCA.selected <- readRDS("Results/WCA/Meta_data_WCA_study_selected.Rds")
+  List.Ensemble.clean.WCA.selected <- readRDS("Results/WCA/List_Ensemble_clean_WCA_selected.Rds")
+  
+  Gr.area.WCA <- split(Gr.area.WCA, Gr.area.WCA$Subgroup)
+  Gr.area.WCA.data <- Gr.area.WCA$`1. Data`
+  Gr.area.WCA.mode <- Gr.area.WCA$`2. Model`
+  
+  #### Export Latex table for sites ####
+  if(Tab.1 == T){
+    Sub.MD.WCA <- Sub.MD.WCA[Sub.MD.WCA$Proxy_classes != "TraCE-21Ka",]
+    print(paste("**** In the WCA study we have", nrow(Sub.MD.WCA), "sites. ****"))
+    print(paste("**** In the WCA study we have", nrow(Sub.MD.WCA[Sub.MD.WCA$Proxy_classes == "Pollen",]), "sites. ****"))
+    print(paste("**** In the WCA STACK we have", nrow(Sub.MD.WCA.in.stack), "sites. ****"))
+    print(paste("**** In the WCA STACK we have", nrow(Sub.MD.WCA.in.stack[Sub.MD.WCA.in.stack$Proxy_classes == "Pollen",]), "sites. ****"))
     
-    #### Stack (Fig. 10) ####
-    Stack.by.area = T
-    if(Stack.by.area == T){
-      #### Data cleaning ####
-      List.Ensemble.clean.WCA.selected <- List.Ensemble.clean[Meta.data.WCA$ID]
-      List.Ensemble.clean.WCA.selected <- Filter(function(df) {any(!is.na(df[, -1, drop = F]))}, List.Ensemble.clean.WCA.selected)
-      
-      Meta.data.WCA.selected <- Meta.data.WCA[Meta.data.WCA$ID %in% names(List.Ensemble.clean.WCA.selected),]
-      Meta.data.WCA.selected <- Meta.data.WCA.selected[Meta.data.WCA.selected$ID %in% Sub.MD.WCA$ID,]
-      
-      List.Ensemble.clean.WCA.selected$`477|Wenqu|Pol`$MAAT <- NA
-      List.Ensemble.clean.WCA.selected <- List.Ensemble.clean[Meta.data.WCA$ID]
-      Sub.MD.WCA.in.stack <- Meta.data.WCA[Meta.data.WCA$ID %in% names(List.Ensemble.clean.WCA.selected),]
-      
-      saveRDS(List.Ensemble.clean.WCA.selected, "Results/WCA/List_Ensemble_clean_WCA_selected.Rds")
-      saveRDS(Sub.MD.WCA.in.stack, "Results/WCA/Meta_data_WCA_study_stacked_list.Rds")
-      saveRDS(Meta.data.WCA.selected, "Results/WCA/Meta_data_WCA_study_selected.Rds")
-      
-      #### Add TraCE-21K ####
-      Add.TraCE = T
-      if(Add.TraCE == T){
-        List.Ensemble.clean.WCA.selected <- c(List.Ensemble.clean.WCA.selected, Tra.Ir, Tra.ETSH, Tra.Cas, Tra.cauc, Tra.WTSH)
-        Meta.data.WCA.selected$Recons.type <-"1. Data"
-        Meta.data.WCA.selected <- rbind(Meta.data.WCA.selected, Meta.data.model.Ir, Meta.data.model.ETSH, Meta.data.model.Cas, Meta.data.model.cauc, Meta.data.model.WTSH)
-        Meta.data.WCA.selected$Area[Meta.data.WCA.selected$Area == "Touran"] <- "Caspian-Aral"
-        Meta.data.WCA.selected$Area[Meta.data.WCA.selected$Area == "Caspian"] <- "Caspian-Aral"
-        Add.subgroup <- "Recons.type"
-      }
-      else{Add.subgroup <- NULL}
-      
-      #### Plot ####
-      Gr.area.WCA <- Plot.stack.groups(List.clim = List.Ensemble.clean.WCA.selected, Meta.data = Meta.data.WCA.selected, Group = "Area", 
-                                       Subgroup = Add.subgroup, Limits = Limits,
-                                       Plot.2.merge = F, Display.map = T, Map.limits = c(41,89,26,49),
-                                       Add.count.per.bin = F, Windows.length = Windows.length.final, 
-                                       Save.data.Rds = "Results/WCA/Holocene_WCA_clusters_zone.Rds",
-                                       Show.strip = T, Facet.by.group = T, Display.CI = T, Leg.ncol = NULL, Width.pour.map = 30, CI.alpha = .4,
-                                       Facet.order = c("Iran", "Caucasus", "Caspian-Aral", "Touran", "West. TSH", "East. TSH"), 
-                                       Remove.extrems = F, Color.by.clim = T, Error.alpha = .2, Add.error.zone = T,
-                                       Add.vlines = c(4200, 8200), Scaling = Scaling.final, Anomaly = Anomaly.final, Smooth.param = Smooth.final, Add.smooth = Add.smooth.final,
-                                       Name.param.clim = c("Temperature", "Moisture"), Add.emptysite = T, Empty.site.from.Meta.data = T, Map.dot.size = 3.2,
-                                       Save.plot = "Figures/Main_Figures/Figure_10.pdf", H = 1000, W = 1115,
-                                       Save.plot.Rds = "Results/WCA/Holocene_ACA_clusters_WCA_plot.Rds"
-                                       )
-    }
-    Gr.area.WCA <- readRDS("Results/WCA/Holocene_WCA_clusters_zone.Rds")
-    Sub.MD.WCA.in.stack <- readRDS("Results/WCA/Meta_data_WCA_study_stacked_list.Rds")
-    Meta.data.WCA.selected <- readRDS("Results/WCA/Meta_data_WCA_study_selected.Rds")
-    List.Ensemble.clean.WCA.selected <- readRDS("Results/WCA/List_Ensemble_clean_WCA_selected.Rds")
-    
-    Gr.area.WCA <- split(Gr.area.WCA, Gr.area.WCA$Subgroup)
-    Gr.area.WCA.data <- Gr.area.WCA$`1. Data`
-    Gr.area.WCA.mode <- Gr.area.WCA$`2. Model`
-    
-    #### Map / elevation Holocene (Figs. 3 et 4) ####
-    Map.Hol.WCA = T
-    if(Map.Hol.WCA == T){
-      Data.map.WCA <- List.Ensemble.clean.WCA.selected[!grepl("\\|TRA", names(List.Ensemble.clean.WCA.selected))]
-      MD.map.WCA <- Meta.data.WCA.selected
-      
-      Data.map.WCA <- Data.map.WCA[grepl("\\|Pol", names(Data.map.WCA))]
-      Data.map.WCA <- Data.map.WCA[!grepl("SonKu", names(Data.map.WCA))]
-      
-      A <- Map.panel.climat(
-        List.df = Data.map.WCA,
-        Timespan = c(200, 4200, 8200, 11700),
-        Meta.data = MD.map.WCA,
-        Display.plot = T, Altitudinal.gradient = F,
-        Period.lab = c("Late Hol.", "Mid-Hol.", "Early Hol."),
-        Color.by.rank = T, Add.emptysite = T, Use.Meta.data.4.empty.site = T,
-        Map.dot.size = 4.5, Empty.site.shape = 4, DEM.alpha = .6,
-        Emphase.proxy = "Pollen", Remove.overlap = T, Show.label = F, Overlap.seuil = 80000,
-        Title.size = 12, Dot.alpha = 1, Add.DEM = T,
-        Map.leg.pos = c(0.002, 0.999), Map.limits = c(41,89,26,49),
-        Save.plot = "Figures/Main_Figures/Figure_3.pdf", H = 750, W = 850
-      )
-      
-      B <- Map.panel.climat(
-        List.df = Data.map.WCA,
-        Timespan = c(200, 4200, 8200, 11700),
-        Meta.data = MD.map.WCA, 
-        Display.plot = F, Show.stats = T,
-        Altitudinal.gradient = T, Elevation.range = c(-300, 3800),
-        Period.lab = c("Late Hol.", "Mid-Hol.", "Early Hol."),
-        Color.by.rank = T, Use.Meta.data.4.empty.site = T,
-        Map.dot.size = 4.5, Empty.site.shape = 4, DEM.alpha = .6,
-        Emphase.proxy = "Pollen", Remove.overlap = T, Show.label = F, Overlap.seuil = 80000,
-        Title.size = 12, Dot.alpha = 1, Add.DEM = F,
-        Map.leg.pos = c(0.002, 0.999), Map.limits = c(41,89,26,49),
-        Save.plot = "Figures/Main_Figures/Figure_4.pdf", H = 500, W = 850
-      )
-    }
-    
-    #### Matrice correlation and networks (Fig. 11) ####
-    Corel.graph = T
-    if(Corel.graph == T){
-      #### Matrice correlation (prep) ####
-      Order.zn <- c("Iran", "Caucasus", "Caspian-Aral", "West. TSH", "East. TSH")
-      Keep.ages <- intersect(unique(Gr.area.WCA.data$Age), unique(Gr.area.WCA.mode$Age))
-      Insol <- Insol.Uz[Insol.Uz$Age %in% Keep.ages,] 
-      Insol <- subset(Insol, select = - c(Age))
-      
-      Gr.area.WCA.data.MAP <- Gr.area.WCA.data[c("Age", "MAP", "Group")] 
-      Gr.area.WCA.data.MAP <- dcast(Gr.area.WCA.data.MAP, Age ~ Group, value.var = "MAP")
-      Gr.area.WCA.data.MAP <- subset(Gr.area.WCA.data.MAP, select = - c(Age))
-      Gr.area.WCA.data.MAP <- Gr.area.WCA.data.MAP[Order.zn]
-      
-      Gr.area.WCA.mode.MAP <- Gr.area.WCA.mode[c("Age", "MAP", "Group")] 
-      Gr.area.WCA.mode.MAP <- dcast(Gr.area.WCA.mode.MAP, Age ~ Group, value.var = "MAP")
-      Gr.area.WCA.mode.MAP <- subset(Gr.area.WCA.mode.MAP, select = - c(Age))
-      Gr.area.WCA.mode.MAP <- Gr.area.WCA.mode.MAP[Order.zn]
-      
-      Gr.area.WCA.data.MAP <- Gr.area.WCA.data.MAP[intersect(row.names(Gr.area.WCA.data.MAP), row.names(Gr.area.WCA.mode.MAP)),]
-      Gr.area.WCA.mode.MAP <- Gr.area.WCA.mode.MAP[intersect(row.names(Gr.area.WCA.data.MAP), row.names(Gr.area.WCA.mode.MAP)),]
-      row.names(Insol) <- row.names(Gr.area.WCA.data.MAP)
-      
-      Gr.area.WCA.data.MAAT <- Gr.area.WCA.data[c("Age", "MAAT", "Group")] 
-      Gr.area.WCA.data.MAAT <- dcast(Gr.area.WCA.data.MAAT, Age ~ Group, value.var = "MAAT")
-      Gr.area.WCA.data.MAAT <- subset(Gr.area.WCA.data.MAAT, select = - c(Age))
-      Gr.area.WCA.data.MAAT <- Gr.area.WCA.data.MAAT[Order.zn]
-      
-      Gr.area.WCA.mode.MAAT <- Gr.area.WCA.mode[c("Age", "MAAT", "Group")] 
-      Gr.area.WCA.mode.MAAT <- dcast(Gr.area.WCA.mode.MAAT, Age ~ Group, value.var = "MAAT")
-      Gr.area.WCA.mode.MAAT <- subset(Gr.area.WCA.mode.MAAT, select = - c(Age))
-      Gr.area.WCA.mode.MAAT <- Gr.area.WCA.mode.MAAT[Order.zn]
-      
-      Gr.area.WCA.data.MAAT <- Gr.area.WCA.data.MAAT[intersect(row.names(Gr.area.WCA.data.MAAT), row.names(Gr.area.WCA.mode.MAAT)),]
-      Gr.area.WCA.mode.MAAT <- Gr.area.WCA.mode.MAAT[intersect(row.names(Gr.area.WCA.data.MAAT), row.names(Gr.area.WCA.mode.MAAT)),]
-      row.names(Insol) <- row.names(Gr.area.WCA.data.MAAT)
-      
-      Insol <- Insol[c(4,2,3,1)]
-      
-      #### Matrice correlation (plot) ####
-      Perm = T; My_perm = 9#999
-      H = 500*.8; W = 800*.8; Save.matcor.WCA = "Figures/Main_Figures/Figure_11.pdf"
-      pdf(file = Save.matcor.WCA, width = W*0.01041666666667, height = H*0.01041666666667)
-      par(mfrow = c(2,3))
-      my_color <- colorRampPalette(c("darkblue", "grey95", "grey95", "darkred"))(20)
-      
-      M1 <- Mat.corel.CWT.clim(Gr.area.WCA.data.MAAT, Gr.area.WCA.data.MAAT, Display = "lower",
-                               Display.pval = "pch", my_color = my_color, Xlab.rot = 0, Xlab.pos = "t",
-                               Permutation.test = Perm, Nb.permutations = My_perm, I.confiance = .95,
-                               Disp.R = "number", Label = F, Average = F,  Bar.pos = "n", Title = "(A) Data vs. Data")
-      
-      M2 <- Mat.corel.CWT.clim(Gr.area.WCA.data.MAAT, Gr.area.WCA.mode.MAAT, #Display = "lower",
-                               Display.pval = "pch", my_color = my_color, Xlab.rot = 0, Xlab.pos = "t", 
-                               Permutation.test = Perm, Nb.permutations = My_perm, I.confiance = .95,
-                               Disp.R = "number", Label = F, Average = F,  Bar.pos = "n", Title = "(B) Data vs. TraCE-21K")
-      
-      M3 <- Mat.corel.CWT.clim(Gr.area.WCA.data.MAAT, Insol, #Display = "lower",
-                               Display.pval = "pch", my_color = my_color, Xlab.rot = 0, Xlab.pos = "t", 
-                               Permutation.test = Perm, Nb.permutations = My_perm, I.confiance = .95, 
-                               Disp.R = "number", Label = F, Average = F,  Bar.pos = "n", Title = "(C) Data vs. Insolation")
-      
-      M4 <- Mat.corel.CWT.clim(Gr.area.WCA.data.MAP, Gr.area.WCA.data.MAP, Display = "lower",
-                               Display.pval = "pch", my_color = my_color, Xlab.rot = 0, Xlab.pos = "t",
-                               Permutation.test = Perm, Nb.permutations = My_perm, I.confiance = .95,
-                               Disp.R = "number", Label = F, Average = F,  Bar.pos = "n")
-      
-      M5 <- Mat.corel.CWT.clim(Gr.area.WCA.data.MAP, Gr.area.WCA.mode.MAP, #Display = "lower",
-                               Display.pval = "pch", my_color = my_color, Xlab.rot = 0, Xlab.pos = "n",
-                               Permutation.test = Perm, Nb.permutations = My_perm, I.confiance = .95,
-                               Disp.R = "number", Label = F, Average = F,  Bar.pos = "n")
-      
-      M6 <- Mat.corel.CWT.clim(Gr.area.WCA.data.MAP, Insol, #Display = "lower",
-                               Display.pval = "pch", my_color = my_color, Xlab.rot = 0, Xlab.pos = "n",
-                               Permutation.test = Perm, Nb.permutations = My_perm, I.confiance = .95,
-                               Disp.R = "number", Label = F, Average = F,  Bar.pos = "n")
-      
-      dev.off()
-      
-    }
-    
-    #### Plot vs Laskar (Fig. 12) ####
-    Plot.vs.Laskar = T
-    if(Plot.vs.Laskar == T){
-      Compar.stack.inso.WCA <- Compar.stack.inso(Mdata = Gr.area.WCA$`1. Data`, Minso = Insol.Uz,
-                                                 List.keep = list(c("MAP", "East. TSH", "Winter"), 
-                                                                  c("MAP", "East. TSH", "Summer"),
-                                                                  c("MAP", "Iran", "Spring"),
-                                                                  c("MAP", "West. TSH", "Summer"),
-                                                                  c("MAP", "West. TSH", "Spring")), 
-                                                 Line.inso.width = 1.5, CI.alpha = .2,
-                                                 Facet.order = c("Iran", "West. TSH", "East. TSH"), Leg.pos = "bottom", Leg.ncol = 4, Title.size = 10,
-                                                 Reverse.val = c("Spring"),
-                                                 Add.vlines = c(4200, 8200), Limits = c(0, 12000),
-                                                 Remove.ages = c(600, 12000, 12200),
-                                                 Save.plot = "Figures/Main_Figures/Figure_12.pdf", H = 700, W = 500)
-    }
-    
-    #### Export Latex table for sites ####
-    Export.latex.WCA = T
-    if(Export.latex.WCA == T){
-      Sub.MD.WCA <- Sub.MD.WCA[Sub.MD.WCA$Proxy_classes != "TraCE-21Ka",]
-      print(paste("**** In the WCA study we have", nrow(Sub.MD.WCA), "sites. ****"))
-      print(paste("**** In the WCA study we have", nrow(Sub.MD.WCA[Sub.MD.WCA$Proxy_classes == "Pollen",]), "sites. ****"))
-      print(paste("**** In the WCA STACK we have", nrow(Sub.MD.WCA.in.stack), "sites. ****"))
-      print(paste("**** In the WCA STACK we have", nrow(Sub.MD.WCA.in.stack[Sub.MD.WCA.in.stack$Proxy_classes == "Pollen",]), "sites. ****"))
-      
-      A <- Table.Latex.settings(Table = Sub.MD.WCA, Round.coord = 3, Save.csv = T, Save.Latex = T, Names.2.rows = T, Abbrev.OK = T, Print.tab.head = T,
-                                Group.order = c("Caucasus", "Iran", "Caspian-Aral", "West. TSH", "East. TSH"),
-                                Keep.columns = c("Area", "ID", "Site_full", "Latitude", "Longitude", "Altitude", "Archive", "Proxy", "Begin", "End", "Res", "Param.clim", "DB", "Reference"),
-                                Rename.columns = c("Region", "Site ID", "Site name", "Lat. (°N)", "Long. (°E)", "Elev. (m~a.s.l.)", "Archive type", "Proxy type", "Time begin", "Time end", "Res. (yrs)", "Climate proxy", "Database", "References"),
-                                LateX.caption = "Settings of the palaeoclimate archives from the Western part of the Arid Central Asia, selected in this study.",
-                                Save.path = "Results/ACA/Export_LaTeX/Papier_synthese_WCA/Table_settings",
-                                Latex.lab = "Table_Setting"
-      )
-      
-      B <- Table.Latex.settings(Table = Sub.MD.WCA, Round.coord = 3, Save.csv = T, Save.Latex = F, Names.2.rows = F, Blanck.cells = F,
-                                Group.order = c("Caucasus", "Iran", "Caspian-Aral", "West. TSH", "East. TSH"),
-                                Keep.columns = c("Area", "ID", "Site_full", "Latitude", "Longitude", "Altitude", "Archive", "Proxy", "Begin", "End", "Res", "Param.clim", "DB", "Reference"),
-                                Rename.columns = c("Region", "Site ID", "Site name", "Lat. (°N)", "Long. (°E)", "Elev. (m~a.s.l.)", "Archive type", "Proxy type", "Time begin", "Time end", "Res. (yrs)", "Climate proxy", "Database", "References"),
-                                LateX.caption = "Settings of the palaeoclimate archives from the Western part of the Arid Central Asia, selected in this study.",
-                                Save.path = "Results/ACA/Export_LaTeX/Papier_synthese_WCA/Site_WCA",
-                                Latex.lab = "Table_Setting")
-    }
-    
-    
-  }  
+    dir.create("Tables/", showWarnings = F)
+    A <- Table.Latex.settings(Table = Sub.MD.WCA, Round.coord = 3, Save.csv = T, Save.Latex = T, Names.2.rows = T, Abbrev.OK = T, Print.tab.head = T,
+                              Group.order = c("Caucasus", "Iran", "Caspian-Aral", "West. TSH", "East. TSH"),
+                              Keep.columns = c("Area", "ID", "Site_full", "Latitude", "Longitude", "Altitude", "Archive", "Proxy", "Begin", "End", "Res", "Param.clim", "DB", "Reference"),
+                              Rename.columns = c("Region", "Site ID", "Site name", "Lat. (°N)", "Long. (°E)", "Elev. (m~a.s.l.)", "Archive type", "Proxy type", "Time begin", "Time end", "Res. (yrs)", "Climate proxy", "Database", "References"),
+                              LateX.caption = "Settings of the palaeoclimate archives from the Western part of the Arid Central Asia, selected in this study.",
+                              Save.path = "Tables/Table_1",
+                              Latex.lab = "Table_Setting")}
+  
+  
 }
 
-stop()
 ########################################### A FAIRE ############################################################
+A.faire = F
+if(A.faire == T){
+
 #### Load functions ####
 # if (!exists("Clim.param.extraction", mode = "function")){source("Scripts/Load_func.R"); Load.my.functions.2(Script = "Scripts/Climat_extract.R", Function.name = "Clim.param.extraction")}
 # if (!exists("Extract.TraCE.21ka", mode = "function")){source("Scripts/Load_func.R"); Load.my.functions.2(Script = "Scripts/TraCE21ka_extract.R", Function.name = "Extract.TraCE.21ka")}
@@ -1799,4 +2090,4 @@ if(ACA.2026 == T){
   
   
 }
-
+}

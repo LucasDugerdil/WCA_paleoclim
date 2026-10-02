@@ -1,19 +1,9 @@
 Path.ACA.border = "Import/SIG/Extern_border/Out_border_ACA.shp"
 
 if(file.exists(Path.ACA.border) == T){
-  ACA.bo = readOGR(Path.ACA.border)
+  ACA.bo = sf::as_Spatial(sf::st_read(Path.ACA.border, quiet = TRUE))
   proj4string(ACA.bo) <- CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
   ACA.bo.proj = fortify(ACA.bo)
-
-  Path.China.border = "Import/China/SIG/Borders/China_out_bo_cl.shp"
-  China.bo = readOGR(Path.China.border)
-  proj4string(China.bo) <- CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
-  China.bo.proj = fortify(China.bo)
-
-  Path.China.bo.adm = "Import/China/SIG/Borders/China_prov_bo.shp"
-  China.bo.adm = readOGR(Path.China.bo.adm)
-  proj4string(China.bo.adm) <- CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
-  China.bo.adm.proj = fortify(China.bo.adm)
 
   Eurasia_map <- c("Mongolia", "Russia", "Spai n", "France", "Italy", "Greece", "Germany", "Finland", "Bhutan", "Bangladesh",
                    "Czech Republic", "Denmark", "Kosovo", "Vietnam", "Laos", "Japan", "Nepal", "India", "Myanmar",

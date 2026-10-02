@@ -4,10 +4,8 @@ Plot.clim.phase <- function(MFT = NULL, MGDGT = NULL, MXRF = NULL, Md18O = NULL,
                             Use.symbol = F, Display.working.plot = F, Keep.top.from = NULL, Stack.proxy = F, Remove.sites = F,
                             Show.proxy.t = T, Detrending = F, Symb.size = .4, Panel.param = .25){
   #### Init Val ####
-  # if(missing(Site.order)){Site.order = names(MFT[[1]][-1])}
   if(missing(Temp.zone)){Temp.zone = rep("C", length(Zone.clim))}
   if(is.null(Name.zone) == F){Site.order <- c("Climate Periods", Site.order)}
-  library(RColorBrewer)
   
   #### Zone clim graphical settings ####
   if(length(unique(Temp.zone)) == 0){Title.color.scale <- c("grey")}
@@ -562,10 +560,8 @@ Plot.clim.phase <- function(MFT = NULL, MGDGT = NULL, MXRF = NULL, Md18O = NULL,
           
           return(c(time_vec[left], time_vec[right]))
         })
-        # print(bounds)
-        # Merge overlapping regions
+        
         merged_bounds <- merge_overlapping_regions(bounds)
-        # print(merged_bounds)
         return(merged_bounds)
       }
       
@@ -751,7 +747,6 @@ Plot.clim.phase <- function(MFT = NULL, MGDGT = NULL, MXRF = NULL, Md18O = NULL,
         Common.site <- intersect(row.names(Keep), row.names(Meta.data))
         Stats.phase.clim.param[[i]] <- cbind(Meta.data[Common.site,], Keep[Common.site,])
       }
-      # print(Stats.phase.clim.param)
     }
     if(Diff.MAAT.MAP == T){names(Stats.phase.clim.param) <- c("MAAT", "MAP", "DeltaParam")}
     if(Diff.MAAT.MAP == F){names(Stats.phase.clim.param) <- c("MAAT", "MAP")}}
@@ -800,7 +795,6 @@ Plot.clim.phase <- function(MFT = NULL, MGDGT = NULL, MXRF = NULL, Md18O = NULL,
   for(i in 1:length(unique(MModel$Param))){
     Param.selected <- unique(MModel$Param)[i]
     Mplot <- MModel[MModel$Param == Param.selected,]
-    # print(seq(Limites[1], Limites[2], 50))
     if(Show.proxy.t == T){Alf <- c("(B) ", "(C) " , "(D) ")}
     else{Alf <- c("(A) ", "(B) " , "(C) ")}
     Title.subplot <- paste(Alf[i], Param.selected, sep = " ")
@@ -891,7 +885,6 @@ Plot.clim.phase <- function(MFT = NULL, MGDGT = NULL, MXRF = NULL, Md18O = NULL,
         mutate(Proxy_n = n(), L1 = ifelse(Proxy_n == 1, 1, seq_len(Proxy_n) / Proxy_n))
     }
     if(Use.symbol == T){
-      library(ggimage)
       SPol = "Figures/ACA/Trait/Workflow/Symboles/svg/Symbole_pollen.svg"
       SGDGT = "Figures/ACA/Trait/Workflow/Symboles/svg/Symbole_GDGT_2.svg"
       SXRF = "Figures/ACA/Trait/Workflow/Symboles/svg/Symbole_XRF.svg"
@@ -948,7 +941,6 @@ Plot.clim.phase <- function(MFT = NULL, MGDGT = NULL, MXRF = NULL, Md18O = NULL,
     saveRDS(Top.list, Save.top)
   }
   if(is.null(Save.Rds) == F){saveRDS(Stats.phase.clim.param, Save.Rds)}
-  # print(Stats.phase.clim.param)
   return(Stats.phase.clim.param)
   
 }
@@ -1055,7 +1047,6 @@ Plot.multiprox <- function(Mlake, Order.alpha, Age.depth, Limites, Title, Smooth
   #### Clean Lake, proxy and method names ####
   Mmelt$Proxy <- sub("^[^.]*\\.", "", Mmelt$lake)
   Mmelt$lake <- sub("\\.", "\n", Mmelt$lake)
-  # print(Mmelt)
   
   #### Manual order of facets ####
   if(Manual.sort == T){
@@ -1073,28 +1064,9 @@ Plot.multiprox <- function(Mlake, Order.alpha, Age.depth, Limites, Title, Smooth
   #### Add surface values ####
   if(is.null(Surf.val) == F){
     MM <- unique(Mmelt[c("lake", "lake.lab")])
-    # MM <- unique(Mmelt[c("variable", "lake", "lake.lab")])
     MM <- na.omit(MM)
     MM$surf.val <- Surf.val[match(MM$lake.lab, Surf.val$Lake), Param.clim]
-    
-    # #### Test pour faire MAAT et MAF ensemble...#####
-    # if(length(Param.clim) == 1){MM$surf.val <- Surf.val[match(MM$lake.lab, Surf.val$Lake), Param.clim]}
-    # else{
-    #   MM$surf.val <- NA
-    #   for(i in Param.clim){
-    #     print(i)
-    #     # Param.T <- grepl(i, MM$variable)
-    #     print(MM$surf.val[grepl(i, MM$variable)])
-    #     MM$surf.val[grepl(i, MM$variable)] <- Surf.val[match(MM$lake.lab[grepl(i, MM$variable)], Surf.val$Lake), i]
-    #       
-    #   }
-    # }
-    # 
-    # print(MM)
-    
     Surf_lines <- geom_hline(data = MM, mapping = aes(yintercept = surf.val), col = "grey30", lty = 2, alpha = 0.7)
-    
-    # print(Surf.val)
   }
   else{Surf_lines <- NULL}
   
@@ -1374,7 +1346,6 @@ Map.panel.climat <- function(List.df = NULL, Timespan = NULL, Period.lab = NULL,
   
   #### Overlapping dots ####
   if(Remove.overlap == T){
-    library(sf)
     Sites_df_plot <- Coords_used
     Sites_df_plot <- Sites_df_plot[!is.na(Sites_df_plot$Latitude), ]
     Sites_df_plot <- Sites_df_plot[!is.na(Sites_df_plot$Longitude), ]
@@ -1670,8 +1641,6 @@ Map.panel.climat <- function(List.df = NULL, Timespan = NULL, Period.lab = NULL,
     
     #### Compact letters ####
     anova_tukey_letters_by_panel <- function(data, response, group, panel, alpha = 0.05) {
-      library(multcompView)
-      
       #### Data cleaning ####
       data[[group]] <- as.factor(data[[group]])
       data[[panel]] <- as.factor(data[[panel]])
@@ -1694,15 +1663,10 @@ Map.panel.climat <- function(List.df = NULL, Timespan = NULL, Period.lab = NULL,
           next
         }
         
-        print(fml)
         model <- aov(fml, data = sub)
-        print(summary(model))
         tukey <- TukeyHSD(model, conf.level = 1 - alpha)
-        # print(tukey)
         cld   <- multcompView::multcompLetters4(model, tukey)
-        
         letters <- cld[[1]]$Letters
-        
         out[[p]] <- data.frame(panel  = p, group  = names(letters), letters = letters, row.names = NULL)
       }
       
@@ -2128,7 +2092,7 @@ Compar.stack.inso <- function(Mdata = NULL, Minso = NULL, List.keep = NULL, Show
   Minso[c(2:ncol(Minso))] <- as.data.frame(lapply(Minso[c(2:ncol(Minso))], Scaling.fun))
   if(is.null(Reverse.val) == F){Minso[names(Minso) %in% Reverse.val] <- - Minso[names(Minso) %in% Reverse.val]}
   Minso <- reshape2::melt(Minso, id = "Age", variable.name = "Inso", value.name = "Inso.val")
-  print(Minso)
+  
   Mdata <- suppressWarnings(full_join(Mdata, Minso, by = "Age"))
   Mdata <- Mdata %>%
     tidyr::pivot_longer(cols = c(MAAT, MAP), names_to = "Param", values_to = "Value") %>%
@@ -2153,7 +2117,7 @@ Compar.stack.inso <- function(Mdata = NULL, Minso = NULL, List.keep = NULL, Show
   }
   
   #### Rescale ####
-  if(Rescale.reconstruction == T){print("zup")
+  if(Rescale.reconstruction == T){
     Mdata <- Mdata %>%
       group_by(Group, Subgroup, Param) %>%
       mutate(Value = Scaling.fun(Value)) %>%
@@ -2304,7 +2268,6 @@ Table.Latex.settings <- function(Table = NULL, Group.order = NULL, Round.coord =
     }
     
     if(Save.Latex == T){
-      library(xtable)
       Save.path.Latex <- paste(Save.path, "tex", sep = ".")
       Position.line <- which(Table$Region != "")
       Position.line <- c(-1,Position.line, nrow(Table)+1)
