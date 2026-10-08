@@ -89,6 +89,8 @@ Tab.1 = F; Fig.3 = F; Fig.4 = F; Fig.5 = F; Fig.6 = F; Fig.7 = F; Fig.8 = F; Fig
 
 # Fig.S9 = T
 
+  Fig.13 = F
+  Fig.S12 = F
 #### Figures and Tables ####
 if(Figures == T){
   #### Fig. 5 + S4 (Caucasus) ####
@@ -653,6 +655,51 @@ if(Figures == T){
                                                Save.plot = "Figures/Main_Figures/Figure_12.pdf", H = 700, W = 500)
   }
   
+  #### Fig. 13 (simul.) ####
+  if(Fig.13 == T){
+    My_season = c("DJF", "MAM", "JJA"); My_param = "PRECT"
+    My_lat = c(19.5,54); My_lon = c(22.2,112.5)
+    My_ano = "percent" # may be "difference", "z-score" or "log(difference)"
+    
+    Map.1 <- Map.anomaly.TraCE.21ka(Display.dots = Meta.data.WCA.no.filter, Dot.color = "Area", CRS.proj = 3857, Legend.pos = "none",
+                                    Param = My_param, Season = My_season, Latitude.range = My_lat, Longitude.range = My_lon, 
+                                    Period.1 = c(5500, 6500), Period.2 = c(100, 150), Nb.col = 3,
+                                    My_title = "(A) Mid-Hol. - Late Hol. (PI)", Anomaly.type = My_ano, No.axis.tit = T)
+    
+    Map.2 <- Map.anomaly.TraCE.21ka(Display.dots = Meta.data.WCA.no.filter, Dot.color = "Area",
+                                    Param = My_param, Season = My_season, Latitude.range = My_lat, Longitude.range = My_lon, 
+                                    Period.1 = c(9500, 10500), Period.2 = c(100, 150), Nb.col = 3,
+                                    My_title = "(B) Early Hol. - Late Hol. (PI)", Anomaly.type = My_ano, No.axis.tit = T)
+    
+    W = 1400; H = 500
+    Save.plot = "Figures/Main_Figures/Figure_13.pdf"
+    Map.full <- (Map.1$plot / guide_area() / Map.2$plot) + plot_layout(guides = "collect", heights = c(10, 2, 10))
+    ggsave(filename = Save.plot, Map.full, width = W*0.026458333, height = H*0.026458333, units = "cm")
+  }
+  
+  #### Fig. S12 (simul. full) ####
+  if(Fig.S12 == T){
+    My_season = c("Annual", "DJF", "MAM", "JJA", "SON"); My_param = "PRECT"
+    My_lat = c(19.5,54); My_lon = c(22.2,112.5)
+    My_ano = "percent" # may be "difference", "z-score" or "log(difference)"
+    
+    Map.1 <- Map.anomaly.TraCE.21ka(Display.dots = Meta.data.WCA.no.filter, Dot.color = "Area", CRS.proj = 3857, Legend.pos = "none",
+                                    Param = My_param, Season = My_season, Latitude.range = My_lat, Longitude.range = My_lon, 
+                                    Period.1 = c(5500, 6500), Period.2 = c(100, 150), Nb.col = 1,
+                                    My_title = "(A) MH − PI", Anomaly.type = My_ano, No.axis.tit = T)
+    
+    
+    Map.2 <- Map.anomaly.TraCE.21ka(Display.dots = Meta.data.WCA.no.filter, Dot.color = "Area",
+                                    Param = My_param, Season = My_season, Latitude.range = My_lat, Longitude.range = My_lon, 
+                                    Period.1 = c(9500, 10500), Period.2 = c(100, 150), Nb.col = 1, No.y.lab = T,
+                                    My_title = "(B) EH − LH", Anomaly.type = My_ano, No.axis.tit = T)
+    
+    µ = .45; W = 2100*µ; H = 2970*µ
+    Save.plot = "Figures/SI/Figure_S12.pdf"
+    Map.full <- ((Map.1$plot | Map.2$plot) / guide_area() + plot_layout(guides = "collect", heights = c(20,1)))
+    ggsave(filename = Save.plot, Map.full, width = W*0.026458333, height = H*0.026458333, units = "cm")
+  }
+
   #### Fig. 14 (map bias) ####
   if(Fig.14 == T){
     #### Settings ####
@@ -956,6 +1003,91 @@ if(Figures == T){
       if(is.null(W) == F & is.null(H) == F){ggsave(p.map, file = Save.plot, width = W*0.026458333, height = H*0.026458333, units = "cm", limitsize = F)}
       else{ggsave(Save.plot)}}
   }
+  #### Fig. S4 (DES) ####
+  Full.DES = F
+  if(Full.DES == T){
+    #### Info ####
+    MD.DES <- Meta.data.WCA.selected[grepl("\\|Pol", Meta.data.WCA.selected$ID),]
+    MD.DES$Path.DES <- paste0(MD.DES$Path.model, "/", MD.DES$Site, "_Ensemble_DES.Rds")
+    
+    
+    Save.plot = "Figures/ACA/Climat/Reconstruction/DES/DES_WCA_full.pdf"
+    H = 2970*.6
+    W = 2100*.6
+    Show.box = F
+    Limites = c(0, 12000)
+    Select.interv = 1000
+    Bar.width = 4
+    
+    #### Import data and clean #### 
+    MD.DES <- MD.DES[file.exists(MD.DES$Path.DES),]
+    
+    LDES <-list()
+    for(i in 1:nrow(MD.DES)){
+      di <- readRDS(MD.DES$Path.DES[i])
+      # di$Site <- MD.DES$Site[i]
+      di$Site <- gsub(" \\(", "\n\\(", MD.DES$Site_full[i])
+      di$Area <- MD.DES$Area[i]
+      LDES[[i]] <- di
+    }
+    
+    LDES <- bind_rows(LDES)
+    
+    #### Graphical settings #### 
+    if(Show.box == T){
+      My_border <- element_rect(fill = NA, colour = "grey30", linewidth = .3)
+      Axis.x <- element_blank(); Axis.y <- element_blank()
+    }
+    else{
+      My_border <- element_blank()
+      Axis.x <- element_line(); Axis.y <- element_line()
+    }
+    
+    My_color_models <- c("WASTDB" = "#e2a064ff", "WAST" = "#e2a064ff", 
+                         "NMSDB" = "#F3A481", "MDB" = "#963326", "TUDB" = "#0094AF", "TUSDB" = "#0094AF",
+                         "ST" = "#91C4DD", "STDB" = "#91C4DD", 
+                         "ACADB" = "#963326", "CAUCDB" = "#0F3361",
+                         "COSTDB" = "#f3c768ff", "COST" = "#f3c768ff",
+                         "MEDTEMP" = "#F3A481", "TEMPSCAND" = "#91C4DD", 
+                         "EAPDB" = "#0F3361", "TAIGDB" = "#32156eff")
+    
+    if(is.null(Limites) == T){Limites = c(min(MPal[[1]][Plot.x], na.rm = T), max(MPal[[1]][Plot.x], na.rm = T))}
+    Title.age = "Time (cal. year BP)"
+    
+    Area.order <- c("Caucasus", "Iran", "Caspian-Aral", "West. TSH", "Est. TSH")
+    LDES$Area <- factor(LDES$Area, Area.order)
+    LDES <- LDES %>%
+      arrange(Area, Site) %>%
+      mutate(Site = factor(Site, levels = unique(Site)))
+    
+    #### Plot #### 
+    pdes <- ggplot(LDES, aes(x = Plot.x, y = value, color = variable, fill = variable)) +
+      geom_col(position = "stack", linewidth = Bar.width) +
+      scale_color_manual(values = My_color_models)+
+      scale_fill_manual(values = My_color_models)+ #ylab("Weights (%)")+
+      scale_x_continuous(name = Title.age, breaks = round(seq(0, Limites[2], by = Select.interv)), limits = Limites, expand = c(0.02, 0.02))+
+      scale_y_continuous(name = "Weights (%)", breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(0,1), labels = c(0, 25, 50, 75, 100))+
+      facet_wrap(Site~., ncol = 1, strip.position = "left")+
+      theme(plot.background = element_blank(),
+            plot.title = element_blank(), panel.grid = element_blank(),
+            strip.placement = "outside", 
+            # strip.text = element_text(angle = 180),
+            strip.text.y.left = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 12),
+            axis.line = element_line(),
+            # axis.line.x = element_blank(), axis.ticks.x = element_blank(), axis.text.x = element_blank(),
+            panel.background = My_border, strip.background = element_blank(), plot.margin = unit(c(0,0.2,0,0),"cm"),
+            legend.position = "top", legend.direction = "horizontal", legend.title = element_blank(),
+      )
+    
+    #### Export plots #### 
+    if(is.null(Save.plot) == F){
+      if(is.null(W) == F & is.null(H) == F){ggsave(pdes, file = Save.plot, width = W*0.026458333, height = H*0.026458333, units = "cm", limitsize = F)}
+      else{ggsave(Save.plot)}}
+    
+    
+  }
+  
+  
   #### Fig. S9 (insolation) ####
   if(Fig.S9 == T){
     Insol.Uz <- Seasonal.insol(Import.path = "Import/Insolation/Laskar_2004", Imported.raw.data = T,
